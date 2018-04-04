@@ -22,7 +22,7 @@ Result<Proto> toProtobuf(const std::string& output) {
 
   auto outputJsonTry = JSON::parse(output);
   if(outputJsonTry.isError()) {
-    LOG(WARNING) << "Error when parsing to JSON.";
+    LOG(WARNING) << "Error when parsing string to JSON.";
     return Error("Malformed JSON");
   }
 
@@ -30,11 +30,11 @@ Result<Proto> toProtobuf(const std::string& output) {
   if(outputJson.is<JSON::Object>()) {
     auto proto = ::protobuf::parse<Proto>(outputJson);
     if(proto.isError())
-     LOG(WARNING) << "Error when parsing JSON to protobuf"; 
+     LOG(WARNING) << "Error when parsing JSON to protobuf";
     return proto;
   }
   else {
-    return Error("Parsing error");
+    return Error("Malformed Protobuf");
   }
   return None();
 }
@@ -46,7 +46,8 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   const ::mesos::SlaveInfo& slaveInfo) {
   if(m_runTaskLabelCommand.empty()) return None();
 
-  LOG(INFO) << "Calling external command for slaveRunTaskLabelDecorator";
+  LOG(INFO) << "slaveRunTaskLabelDecorator: calling command \""
+            << m_runTaskLabelCommand << "\"";
 
   JSON::Object inputsJson;
   inputsJson.values["task_info"] = JSON::protobuf(taskInfo);
@@ -62,7 +63,8 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
   const ::mesos::ExecutorInfo& executorInfo) {
   if(m_executorEnvironmentCommand.empty()) return None();
 
-  LOG(INFO) << "Calling external command for slaveExecutorEnvironmentDecorator";
+  LOG(INFO) << "slaveExecutorEnvironmentDecorator: calling command \""
+            << m_executorEnvironmentCommand << "\"";
 
   JSON::Object inputsJson;
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
@@ -76,7 +78,8 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   const ::mesos::ExecutorInfo& executorInfo) {
   if(m_removeExecutorCommand.empty()) return Nothing();
 
-  LOG(INFO) << "Calling external command for slaveRemoveExecutorHook";
+  LOG(INFO) << "slaveRemoveExecutorHook: calling command \""
+            << m_removeExecutorCommand << "\"";
 
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);

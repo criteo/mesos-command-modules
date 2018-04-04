@@ -22,7 +22,8 @@ public:
   TemporaryFile() {
     char filepath[] = TEMP_FILE_TEMPLATE;
     if(mkstemp(filepath) == -1)
-      throw std::runtime_error("Unable to create temporary file");
+      throw std::runtime_error(
+        "Unable to create temporary file to run commands");
     m_filepath = std::string(filepath);
   }
 
@@ -32,8 +33,10 @@ public:
    */
   std::string readAll() const {
     std::ifstream ifs(m_filepath);
-    return std::string((std::istreambuf_iterator<char>(ifs)),
-                       (std::istreambuf_iterator<char>()));
+    std::string content((std::istreambuf_iterator<char>(ifs)),
+                        (std::istreambuf_iterator<char>()));
+    ifs.close();
+    return content;
   }
 
   /*
@@ -45,6 +48,7 @@ public:
     ofs.open(m_filepath);
     ofs << content;
     std::flush(ofs);
+    ofs.close();
   }
 
   ~TemporaryFile() {
