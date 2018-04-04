@@ -8,8 +8,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -Wno-macro-redefined -std=c++11")
 
 find_package(PkgConfig REQUIRED)
 
-pkg_check_modules(RUBY REQUIRED ruby-2.4)
-
 if(DEFINED ENV{MESOS_BUILD_DIR})
   set(MESOS_BUILD_DIR $ENV{MESOS_BUILD_DIR})
 else()
