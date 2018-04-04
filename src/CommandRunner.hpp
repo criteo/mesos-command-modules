@@ -7,7 +7,8 @@ namespace criteo {
 namespace mesos {
 namespace CommandRunner
 {
-std::string run(const std::string& command, const std::string& serializedInput);
+std::string run(const std::string& command, const std::string& serializedInput,
+  int timeout = 5);
 }
 }
 }
