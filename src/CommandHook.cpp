@@ -22,21 +22,22 @@ Result<Proto> toProtobuf(const std::string& output) {
 
   auto outputJsonTry = JSON::parse(output);
   if(outputJsonTry.isError()) {
-    LOG(WARNING) << "Error when parsing string to JSON.";
+    LOG(WARNING) << "Error when parsing string to JSON:"
+                 << outputJsonTry.error();
     return Error("Malformed JSON");
   }
 
   auto outputJson = outputJsonTry.get();
-  if(outputJson.is<JSON::Object>()) {
-    auto proto = ::protobuf::parse<Proto>(outputJson);
-    if(proto.isError())
-     LOG(WARNING) << "Error when parsing JSON to protobuf";
-    return proto;
+  if(!outputJson.is<JSON::Object>()) {
+    return Error("Malformed Protobuf. JSON object is expected.");
   }
-  else {
-    return Error("Malformed Protobuf");
+
+  auto proto = ::protobuf::parse<Proto>(outputJson);
+  if(proto.isError()) {
+    LOG(WARNING) << "Error while converting JSON to protobuf: "
+                 << proto.error();
   }
-  return None();
+  return proto;
 }
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(

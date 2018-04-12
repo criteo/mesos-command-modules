@@ -2,13 +2,9 @@
 
 #include <gtest/gtest.h>
 
-extern std::string resources_path;
+extern std::string g_resourcesPath;
 
 using namespace criteo::mesos;
-
-std::string bash(const std::string& script) {
-  return "/bin/bash " + resources_path + script;
-}
 
 class CommandHookTest : public ::testing::Test
 {
@@ -22,9 +18,9 @@ public:
   void SetUp()
   {
     hook.reset(new CommandHook(
-      bash("slaveRunTaskLabelDecorator.sh"),
-      bash("slaveExecutorEnvironmentDecorator.sh"),
-      bash("slaveRemoveExecutorHook.sh")));
+      g_resourcesPath + "slaveRunTaskLabelDecorator.sh",
+      g_resourcesPath +"slaveExecutorEnvironmentDecorator.sh",
+      g_resourcesPath + "slaveRemoveExecutorHook.sh"));
     taskInfo.set_name("test_task");
     taskInfo.mutable_task_id()->set_value("1");
     taskInfo.mutable_slave_id()->set_value("2");
@@ -84,9 +80,9 @@ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-      bash("unexisting.sh"),
-      bash("unexisting.sh"),
-      bash("unexisting.sh")));
+      "unexisting.sh",
+      "unexisting.sh",
+      "unexisting.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
@@ -107,9 +103,9 @@ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-      bash("slaveRunTaskLabelDecorator_malformed.sh"),
-      bash("slaveExecutorEnvironmentDecorator_malformed.sh"),
-      bash("slaveRemoveExecutorHook_malformed.sh")));
+      g_resourcesPath + "slaveRunTaskLabelDecorator_malformed.sh",
+      g_resourcesPath + "slaveExecutorEnvironmentDecorator_malformed.sh",
+      g_resourcesPath + "slaveRemoveExecutorHook_malformed.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
@@ -150,9 +146,9 @@ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-      bash("slaveRunTaskLabelDecorator_incorrect_protobuf.sh"),
-      bash("slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh"),
-      bash("slaveRemoveExecutorHook_incorrect_protobuf.sh")));
+      g_resourcesPath + "slaveRunTaskLabelDecorator_incorrect_protobuf.sh",
+      g_resourcesPath + "slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh",
+      g_resourcesPath + "slaveRemoveExecutorHook_incorrect_protobuf.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
