@@ -1,0 +1,26 @@
+ {
+   "libraries": [
+     {
+       "file": "/opt/mesos/libmesos_command_modules.so",
+       "modules": [
+         {
+           "name": "com_criteo_mesos_CommandHook",
+           "parameters": [
+             {
+               "key": "slave_run_task_label_decorator",
+               "value": "/opt/mesos/slave_run_task_label_decorator.sh"
+             },
+             {
+               "key": "slave_executor_environment_decorator",
+               "value": "/opt/mesos/slave_executor_environment_decorator.sh"
+             },
+             {
+               "key": "slave_remove_executor_hook",
+               "value": "/opt/mesos/slave_remove_executor_hook.sh"
+             },
+           ]
+         }
+       ]
+     }
+   ]
+ }
