@@ -77,14 +77,13 @@ private:
 };
 
 inline bool fileExists(const std::string& name) {
-  struct stat buffer;   
-  return (stat (name.c_str(), &buffer) == 0); 
+  struct stat buffer;
+  return (stat(name.c_str(), &buffer) == 0);
 }
 
 inline bool isFileExecutable(const std::string& name) {
  return !access(name.c_str(), X_OK);
 }
-
 
 /*
  * Fork and run a command in the child process.

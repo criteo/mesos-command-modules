@@ -1,6 +1,10 @@
 #include "ModulesFactory.hpp"
 #include "CommandHook.hpp"
+#include "CommandIsolator.hpp"
 
+/*
+ * Parameters for hook
+ */
 const std::string SLAVE_RUN_TASK_LABEL_DECORATOR_KEY =
   "slave_run_task_label_decorator";
 const std::string SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY =
@@ -8,6 +12,11 @@ const std::string SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY =
 const std::string SLAVE_REMOVE_EXECUTOR_KEY =
   "slave_remove_executor_hook";
 
+/*
+ * Parameters for isolator
+ */
+const std::string PREPARE_KEY = "prepare";
+const std::string CLEANUP_KEY = "cleanup";
 
 namespace criteo {
 namespace mesos {
@@ -25,7 +34,7 @@ map<string, string> toMap(
   return kv;
 }
 
-string get(const map<string, string>& kv, const string& key) {
+string getOrEmpty(const map<string, string>& kv, const string& key) {
   string command;
   auto it = kv.find(key);
   if(it != kv.end())
@@ -35,17 +44,20 @@ string get(const map<string, string>& kv, const string& key) {
 
 ::mesos::Hook* createHook(const ::mesos::Parameters& parameters) {
   map<string, string> p = toMap(parameters);
-  auto runTaskLabelCommand = get(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
-  auto executorEnvironmentCommand = get(p,
+  auto runTaskLabelCommand = getOrEmpty(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
+  auto executorEnvironmentCommand = getOrEmpty(p,
     SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY);
-  auto removeExecutorCommand = get(p, SLAVE_REMOVE_EXECUTOR_KEY);
+  auto removeExecutorCommand = getOrEmpty(p, SLAVE_REMOVE_EXECUTOR_KEY);
   return new CommandHook(runTaskLabelCommand, executorEnvironmentCommand,
     removeExecutorCommand);
 }
 
 ::mesos::slave::Isolator* createIsolator(
   const ::mesos::Parameters& parameters) {
-  return nullptr;
+  map<string, string> p = toMap(parameters);
+  auto prepareCommand = getOrEmpty(p, PREPARE_KEY);
+  auto cleanupCommand = getOrEmpty(p, CLEANUP_KEY);
+  return new CommandIsolator(prepareCommand, cleanupCommand);
 }
 
 }

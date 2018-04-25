@@ -1,5 +1,5 @@
-#ifndef __COMMAND_HOOK_HPP__
-#define __COMMAND_HOOK_HPP__
+#ifndef __COMMAND_ISOLATOR_HPP__
+#define __COMMAND_ISOLATOR_HPP__
 
 #include <string>
 
@@ -8,6 +8,9 @@
 
 namespace criteo {
 namespace mesos {
+
+// Forward declaration
+class CommandIsolatorProcess;
 
 class CommandIsolator : public ::mesos::slave::Isolator
 {
@@ -29,7 +32,7 @@ public:
   /**
    * Destructor
    */
-  virtual ~CommandIsolator() {}
+  virtual ~CommandIsolator();
 
   /**
    * Run an external command on prepare phase of a new container.
@@ -56,8 +59,7 @@ public:
     const ::mesos::ContainerID& containerId);
 
 private:
-  std::string m_prepareCommand;
-  std::string m_cleanupCommand;
+  CommandIsolatorProcess* m_process;
 };
 
 }
