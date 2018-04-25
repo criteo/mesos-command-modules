@@ -1,8 +1,6 @@
 #include "CommandHook.hpp"
 #include "CommandRunner.hpp"
-
-#include <stout/json.hpp>
-#include <stout/protobuf.hpp>
+#include "Helpers.hpp"
 
 namespace criteo {
 namespace mesos {
@@ -14,30 +12,6 @@ CommandHook::CommandHook(const std::string& runTaskLabelCommand,
     m_executorEnvironmentCommand(executorEnvironmentCommand),
     m_removeExecutorCommand(removeExecutorCommand)
 {
-}
-
-template<class Proto>
-Result<Proto> toProtobuf(const std::string& output) {
-  if(output.empty()) return Error("No content to parse");
-
-  auto outputJsonTry = JSON::parse(output);
-  if(outputJsonTry.isError()) {
-    LOG(WARNING) << "Error when parsing string to JSON:"
-                 << outputJsonTry.error();
-    return Error("Malformed JSON");
-  }
-
-  auto outputJson = outputJsonTry.get();
-  if(!outputJson.is<JSON::Object>()) {
-    return Error("Malformed Protobuf. JSON object is expected.");
-  }
-
-  auto proto = ::protobuf::parse<Proto>(outputJson);
-  if(proto.isError()) {
-    LOG(WARNING) << "Error while converting JSON to protobuf: "
-                 << proto.error();
-  }
-  return proto;
 }
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
@@ -57,7 +31,7 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   inputsJson.values["slave_info"] = JSON::protobuf(slaveInfo);
   auto output = CommandRunner::run(
     m_runTaskLabelCommand, stringify(inputsJson));
-  return toProtobuf<::mesos::Labels>(output);
+  return jsonToProtobuf<::mesos::Labels>(output);
 }
 
 Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
@@ -71,7 +45,7 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
   auto output = CommandRunner::run(
     m_executorEnvironmentCommand, stringify(inputsJson));
-  return toProtobuf<::mesos::Environment>(output);
+  return jsonToProtobuf<::mesos::Environment>(output);
 }
 
 Try<Nothing> CommandHook::slaveRemoveExecutorHook(

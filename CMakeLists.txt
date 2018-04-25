@@ -49,6 +49,7 @@ endif()
 set(MODULES_SOURCES
   src/ModulesFactory.cpp
   src/CommandHook.cpp
+  src/CommandIsolator.cpp
   src/CommandRunner.cpp
 )
 

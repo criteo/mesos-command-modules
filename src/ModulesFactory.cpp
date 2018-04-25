@@ -43,10 +43,15 @@ string get(const map<string, string>& kv, const string& key) {
     removeExecutorCommand);
 }
 
+::mesos::slave::Isolator* createIsolator(
+  const ::mesos::Parameters& parameters) {
+  return nullptr;
+}
+
 }
 }
 
-mesos::modules::Module<mesos::Hook> com_criteo_mesos_CommandHook(
+mesos::modules::Module<::mesos::Hook> com_criteo_mesos_CommandHook(
     MESOS_MODULE_API_VERSION,
     MESOS_VERSION,
     "Criteo Mesos",
@@ -54,3 +59,12 @@ mesos::modules::Module<mesos::Hook> com_criteo_mesos_CommandHook(
     "Command hook module",
     nullptr,
     criteo::mesos::createHook);
+
+mesos::modules::Module<::mesos::slave::Isolator> com_criteo_mesos_CommandIsolator(
+    MESOS_MODULE_API_VERSION,
+    MESOS_VERSION,
+    "Criteo Mesos",
+    "mesos@criteo.com",
+    "Command isolator module",
+    nullptr,
+    criteo::mesos::createIsolator);
