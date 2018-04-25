@@ -67,6 +67,7 @@ add_executable(${TEST_BINARY_NAME}
   tests/main.cpp
   tests/CommandRunnerTest.cpp
   tests/CommandHookTest.cpp
+  tests/CommandIsolatorTest.cpp
   tests/ModulesFactoryTest.cpp
 )
 
