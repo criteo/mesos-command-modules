@@ -24,7 +24,9 @@ CommandIsolator::CommandIsolator(
 process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
   const ContainerID& containerId,
   const ContainerConfig& containerConfig) {
-  if(m_prepareCommand.empty()) return None();
+  if(m_prepareCommand.empty()) {
+    return None();
+  }
 
   LOG(INFO) << "prepare: calling command \"" << m_prepareCommand << "\"";
 
@@ -34,10 +36,16 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
   auto output = CommandRunner::run(
     m_prepareCommand, stringify(inputsJson));
 
-  if(output.empty()) return None();
+  if(output.isError()) {
+    return Failure(output.error());
+  }
+
+  if(output->empty()) {
+    return None();
+  }
 
   Result<ContainerLaunchInfo> containerLaunchInfo =
-    jsonToProtobuf<ContainerLaunchInfo>(output);
+    jsonToProtobuf<ContainerLaunchInfo>(output.get());
 
   if(containerLaunchInfo.isError()) {
     return Failure("Unable to deserialize ContainerLaunchInfo: " +
@@ -48,14 +56,21 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
 
 process::Future<Nothing> CommandIsolator::cleanup(
   const ContainerID& containerId) {
-  if(m_cleanupCommand.empty()) return Nothing();
+  if(m_cleanupCommand.empty()) {
+    return Nothing();
+  }
 
   LOG(INFO) << "cleanup: calling command \"" << m_cleanupCommand << "\"";
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
+
   auto output = CommandRunner::run(
     m_cleanupCommand, stringify(inputsJson));
+
+  if(output.isError()) {
+    return Failure(output.error());
+  }
 
   return Nothing();
 }

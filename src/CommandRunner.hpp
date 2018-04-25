@@ -3,11 +3,13 @@
 
 #include <string>
 
+#include <stout/try.hpp>
+
 namespace criteo {
 namespace mesos {
 namespace CommandRunner
 {
-std::string run(const std::string& command, const std::string& serializedInput,
+Try<std::string> run(const std::string& command, const std::string& serializedInput,
   int timeout = 5);
 }
 }

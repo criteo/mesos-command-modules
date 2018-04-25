@@ -19,7 +19,9 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   const ::mesos::ExecutorInfo& executorInfo,
   const ::mesos::FrameworkInfo& frameworkInfo,
   const ::mesos::SlaveInfo& slaveInfo) {
-  if(m_runTaskLabelCommand.empty()) return None();
+  if(m_runTaskLabelCommand.empty()) {
+    return None();
+  }
 
   LOG(INFO) << "slaveRunTaskLabelDecorator: calling command \""
             << m_runTaskLabelCommand << "\"";
@@ -31,12 +33,19 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   inputsJson.values["slave_info"] = JSON::protobuf(slaveInfo);
   auto output = CommandRunner::run(
     m_runTaskLabelCommand, stringify(inputsJson));
-  return jsonToProtobuf<::mesos::Labels>(output);
+
+  if(output.isError()) {
+    return Error(output.error());
+  }
+
+  return jsonToProtobuf<::mesos::Labels>(output.get());
 }
 
 Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
   const ::mesos::ExecutorInfo& executorInfo) {
-  if(m_executorEnvironmentCommand.empty()) return None();
+  if(m_executorEnvironmentCommand.empty()) {
+    return None();
+  }
 
   LOG(INFO) << "slaveExecutorEnvironmentDecorator: calling command \""
             << m_executorEnvironmentCommand << "\"";
@@ -45,7 +54,12 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
   auto output = CommandRunner::run(
     m_executorEnvironmentCommand, stringify(inputsJson));
-  return jsonToProtobuf<::mesos::Environment>(output);
+
+  if(output.isError()) {
+    return Error(output.error());
+  }
+
+  return jsonToProtobuf<::mesos::Environment>(output.get());
 }
 
 Try<Nothing> CommandHook::slaveRemoveExecutorHook(
@@ -59,8 +73,13 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  CommandRunner::run(
+  auto output = CommandRunner::run(
     m_removeExecutorCommand, stringify(inputsJson));
+
+  if(output.isError()) {
+    return Error(output.error());
+  }
+
   return Nothing();
 }
 }

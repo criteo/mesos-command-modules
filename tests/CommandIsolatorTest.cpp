@@ -61,17 +61,14 @@ public:
   std::unique_ptr<CommandIsolator> isolator;
 };
 
-TEST_F(UnexistingCommandIsolatorTest, should_run_prepare_command_and_return_null_option) {
+TEST_F(UnexistingCommandIsolatorTest, should_try_to_run_prepare_command_and_fail) {
   auto future = isolator->prepare(containerId, containerConfig);
-  AWAIT_READY(future);
-
-  Option<ContainerLaunchInfo> launchInfo = future.get();
-  EXPECT_TRUE(launchInfo.isNone());
+  AWAIT_FAILED(future);
 }
 
-TEST_F(UnexistingCommandIsolatorTest, should_run_cleanup_command_and_return_null_option) {
+TEST_F(UnexistingCommandIsolatorTest, should_try_to_run_cleanup_command_and_fail) {
   auto future = isolator->cleanup(containerId);
-  AWAIT_READY(future);
+  AWAIT_FAILED(future);
 }
 
 class MalformedCommandIsolatorTest : public CommandIsolatorTest
