@@ -4,7 +4,7 @@ set(PROJECT_NAME mesos_command_modules)
 project(${PROJECT_NAME})
 
 set(CMAKE_MACOSX_RPATH 1)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -Wno-macro-redefined -std=c++11")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0 -Wall -Wno-macro-redefined -std=c++11")
 
 find_package(PkgConfig REQUIRED)
 
@@ -46,16 +46,59 @@ if (NOT MESOS_FOUND) # Assume build tree has not been installed yet
   set(MESOS_LIBRARIES mesos)
 endif()
 
+
+
 set(MODULES_SOURCES
-  src/ModulesFactory.cpp
-  src/CommandHook.cpp
-  src/CommandRunner.cpp
+  ${CMAKE_SOURCE_DIR}/src/CommandHook.cpp
+  ${CMAKE_SOURCE_DIR}/src/CommandIsolator.cpp
+  ${CMAKE_SOURCE_DIR}/src/CommandRunner.cpp
+  ${CMAKE_SOURCE_DIR}/src/ModulesFactory.cpp
 )
 
-add_compile_options(${MESOS_CFLAGS} ${RUBY_CFLAGS})
-include_directories(${MESOS_INCLUDE_DIRS} ${RUBY_INCLUDE_DIRS})
-link_directories(${MESOS_LIBRARY_DIRS} ${RUBY_LIBRARY_DIRS})
-link_libraries(${MESOS_LIBRARIES} ${RUBY_LIBRARIES})
+set(MODULES_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/CommandHook.hpp
+  ${CMAKE_SOURCE_DIR}/src/CommandIsolator.hpp
+  ${CMAKE_SOURCE_DIR}/src/CommandRunner.hpp
+  ${CMAKE_SOURCE_DIR}/src/Helpers.hpp
+  ${CMAKE_SOURCE_DIR}/src/ModulesFactory.hpp
+)
+
+set(ALL_SOURCES
+  ${MODULES_SOURCES}
+  ${MODULES_HEADERS}
+)
+
+set(TEST_SOURCES
+  ${CMAKE_SOURCE_DIR}/tests/main.cpp
+  ${CMAKE_SOURCE_DIR}/tests/CommandRunnerTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/CommandHookTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/CommandIsolatorTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/ModulesFactoryTest.cpp
+)
+
+find_program(
+  CLANG_FORMAT_EXE
+  NAMES "clang-format"
+  DOC "Path to clang-format executable"
+  )
+
+if(NOT CLANG_FORMAT_EXE)
+  message(STATUS "clang-format not found.")
+else()
+  message(STATUS "clang-format found: ${CLANG_FORMAT_EXE}")
+  add_custom_target(
+        clang-format
+        COMMAND "${CLANG_FORMAT_EXE}"
+        -style=file
+        -i
+        ${ALL_SOURCES}
+  )
+endif()
+
+add_compile_options(${MESOS_CFLAGS})
+include_directories(${MESOS_INCLUDE_DIRS})
+link_directories(${MESOS_LIBRARY_DIRS})
+link_libraries(${MESOS_LIBRARIES})
 
 add_library(${PROJECT_NAME} SHARED ${MODULES_SOURCES})
 
@@ -63,10 +106,7 @@ add_library(${PROJECT_NAME} SHARED ${MODULES_SOURCES})
 
 SET(TEST_BINARY_NAME test_mesos_command_modules)
 add_executable(${TEST_BINARY_NAME}
-  tests/main.cpp
-  tests/CommandRunnerTest.cpp
-  tests/CommandHookTest.cpp
-  tests/ModulesFactoryTest.cpp
+  ${TEST_SOURCES}
 )
 
 file(GLOB GTEST_SRCH_PATH "${MESOS_BUILD_DIR}/3rdparty/googletest-*/googletest/include")

@@ -1,8 +1,6 @@
 #include "CommandHook.hpp"
 #include "CommandRunner.hpp"
-
-#include <stout/json.hpp>
-#include <stout/protobuf.hpp>
+#include "Helpers.hpp"
 
 namespace criteo {
 namespace mesos {
@@ -10,42 +8,18 @@ namespace mesos {
 CommandHook::CommandHook(const std::string& runTaskLabelCommand,
                          const std::string& executorEnvironmentCommand,
                          const std::string& removeExecutorCommand)
-  : m_runTaskLabelCommand(runTaskLabelCommand),
-    m_executorEnvironmentCommand(executorEnvironmentCommand),
-    m_removeExecutorCommand(removeExecutorCommand)
-{
-}
-
-template<class Proto>
-Result<Proto> toProtobuf(const std::string& output) {
-  if(output.empty()) return Error("No content to parse");
-
-  auto outputJsonTry = JSON::parse(output);
-  if(outputJsonTry.isError()) {
-    LOG(WARNING) << "Error when parsing string to JSON:"
-                 << outputJsonTry.error();
-    return Error("Malformed JSON");
-  }
-
-  auto outputJson = outputJsonTry.get();
-  if(!outputJson.is<JSON::Object>()) {
-    return Error("Malformed Protobuf. JSON object is expected.");
-  }
-
-  auto proto = ::protobuf::parse<Proto>(outputJson);
-  if(proto.isError()) {
-    LOG(WARNING) << "Error while converting JSON to protobuf: "
-                 << proto.error();
-  }
-  return proto;
-}
+    : m_runTaskLabelCommand(runTaskLabelCommand),
+      m_executorEnvironmentCommand(executorEnvironmentCommand),
+      m_removeExecutorCommand(removeExecutorCommand) {}
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
-  const ::mesos::TaskInfo& taskInfo,
-  const ::mesos::ExecutorInfo& executorInfo,
-  const ::mesos::FrameworkInfo& frameworkInfo,
-  const ::mesos::SlaveInfo& slaveInfo) {
-  if(m_runTaskLabelCommand.empty()) return None();
+    const ::mesos::TaskInfo& taskInfo,
+    const ::mesos::ExecutorInfo& executorInfo,
+    const ::mesos::FrameworkInfo& frameworkInfo,
+    const ::mesos::SlaveInfo& slaveInfo) {
+  if (m_runTaskLabelCommand.empty()) {
+    return None();
+  }
 
   LOG(INFO) << "slaveRunTaskLabelDecorator: calling command \""
             << m_runTaskLabelCommand << "\"";
@@ -55,29 +29,41 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["slave_info"] = JSON::protobuf(slaveInfo);
-  auto output = CommandRunner::run(
-    m_runTaskLabelCommand, stringify(inputsJson));
-  return toProtobuf<::mesos::Labels>(output);
+  auto output =
+      CommandRunner::run(m_runTaskLabelCommand, stringify(inputsJson));
+
+  if (output.isError()) {
+    return Error(output.error());
+  }
+
+  return jsonToProtobuf<::mesos::Labels>(output.get());
 }
 
 Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
-  const ::mesos::ExecutorInfo& executorInfo) {
-  if(m_executorEnvironmentCommand.empty()) return None();
+    const ::mesos::ExecutorInfo& executorInfo) {
+  if (m_executorEnvironmentCommand.empty()) {
+    return None();
+  }
 
   LOG(INFO) << "slaveExecutorEnvironmentDecorator: calling command \""
             << m_executorEnvironmentCommand << "\"";
 
   JSON::Object inputsJson;
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  auto output = CommandRunner::run(
-    m_executorEnvironmentCommand, stringify(inputsJson));
-  return toProtobuf<::mesos::Environment>(output);
+  auto output =
+      CommandRunner::run(m_executorEnvironmentCommand, stringify(inputsJson));
+
+  if (output.isError()) {
+    return Error(output.error());
+  }
+
+  return jsonToProtobuf<::mesos::Environment>(output.get());
 }
 
 Try<Nothing> CommandHook::slaveRemoveExecutorHook(
-  const ::mesos::FrameworkInfo& frameworkInfo,
-  const ::mesos::ExecutorInfo& executorInfo) {
-  if(m_removeExecutorCommand.empty()) return Nothing();
+    const ::mesos::FrameworkInfo& frameworkInfo,
+    const ::mesos::ExecutorInfo& executorInfo) {
+  if (m_removeExecutorCommand.empty()) return Nothing();
 
   LOG(INFO) << "slaveRemoveExecutorHook: calling command \""
             << m_removeExecutorCommand << "\"";
@@ -85,8 +71,13 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  CommandRunner::run(
-    m_removeExecutorCommand, stringify(inputsJson));
+  auto output =
+      CommandRunner::run(m_removeExecutorCommand, stringify(inputsJson));
+
+  if (output.isError()) {
+    return Error(output.error());
+  }
+
   return Nothing();
 }
 }

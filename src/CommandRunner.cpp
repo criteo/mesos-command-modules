@@ -1,16 +1,21 @@
 #include "CommandRunner.hpp"
-#include <memory>
-#include <stdio.h>
-#include <fstream>
-#include <sstream>
-#include <iostream>
+
+#include <errno.h>
 #include <signal.h>
+#include <stdio.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <time.h>
-#include <errno.h>
+#include <unistd.h>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <sstream>
 
 #include <glog/logging.h>
+
+#include <stout/nothing.hpp>
 #include <stout/try.hpp>
 
 #define TEMP_FILE_TEMPLATE "/tmp/criteo-mesos-XXXXXX"
@@ -25,14 +30,13 @@ namespace CommandRunner {
 /*
  * Represent a temporary file that can be either written or read from.
  */
-class TemporaryFile
-{
-public:
+class TemporaryFile {
+ public:
   TemporaryFile() {
     char filepath[] = TEMP_FILE_TEMPLATE;
-    if(mkstemp(filepath) == -1)
+    if (mkstemp(filepath) == -1)
       throw std::runtime_error(
-        "Unable to create temporary file to run commands");
+          "Unable to create temporary file to run commands");
     m_filepath = std::string(filepath);
   }
 
@@ -61,16 +65,24 @@ public:
   }
 
   ~TemporaryFile() {
-    if(remove(m_filepath.c_str()) != 0)
+    if (remove(m_filepath.c_str()) != 0)
       std::cerr << "Error while deleting " << m_filepath << std::endl;
   }
 
   inline const std::string& filepath() const { return m_filepath; }
 
-private:
+ private:
   std::string m_filepath;
 };
 
+inline bool fileExists(const std::string& name) {
+  struct stat buffer;
+  return (stat(name.c_str(), &buffer) == 0);
+}
+
+inline bool isFileExecutable(const std::string& name) {
+  return !access(name.c_str(), X_OK);
+}
 
 /*
  * Fork and run a command in the child process.
@@ -84,8 +96,7 @@ private:
  * @return The pid of the child process.
  */
 pid_t popen2(const std::string& command, const std::vector<std::string>& args,
-             int *infp = NULL, int *outfp = NULL)
-{
+             int* infp = NULL, int* outfp = NULL) {
   int p_stdin[2], p_stdout[2];
   pid_t pid;
   if (pipe(p_stdin) != 0 || pipe(p_stdout) != 0) {
@@ -95,14 +106,13 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
   pid = fork();
   if (pid < 0) {
     return pid;
-  }
-  else if (pid == 0) // executed in child
+  } else if (pid == 0)  // executed in child
   {
-    std::vector<char *> nullTerminatedArgs;
+    std::vector<char*> nullTerminatedArgs;
     nullTerminatedArgs.push_back(const_cast<char*>(command.c_str()));
     std::transform(
-      args.begin(), args.end(), std::back_inserter(nullTerminatedArgs),
-      [](const std::string& arg) { return const_cast<char*>(arg.c_str()); });
+        args.begin(), args.end(), std::back_inserter(nullTerminatedArgs),
+        [](const std::string& arg) { return const_cast<char*>(arg.c_str()); });
     nullTerminatedArgs.push_back(nullptr);
 
     close(p_stdin[WRITE]);
@@ -113,21 +123,20 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
 
     // This code will only be reached if execl fails according to the
     // documentation: https://linux.die.net/man/3/execl
-    LOG(ERROR) << "Error when executing command \"" << command << "\": " << strerror(errno);
+    LOG(ERROR) << "Error when executing command \"" << command
+               << "\": " << strerror(errno);
     exit(1);
   }
 
   // executed in parent
   if (infp == NULL) {
     close(p_stdin[WRITE]);
-  }
-  else {
+  } else {
     *infp = p_stdin[WRITE];
   }
   if (outfp == NULL) {
     close(p_stdout[READ]);
-  }
-  else {
+  } else {
     *outfp = p_stdout[READ];
   }
   return pid;
@@ -137,12 +146,15 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
  * Fork the process to run command and kill the child if it does not
  * finish before the timeout deadline.
  *
+ * TODO(clems4ever): split this method so that it becomes easier to read.
+ *
  * @param command The command to execute in the child process.
  * @param timeout The timeout deadline in seconds before killing the
  * child process.
  */
-void runCommandWithTimeout(const std::string& command,
-  const std::vector<std::string>& args, int timeout) {
+Try<Nothing> runCommandWithTimeout(const std::string& command,
+                                   const std::vector<std::string>& args,
+                                   int timeout) {
   int status;
   unsigned int tick = 0;
   const unsigned int SECONDS = 1000000000;
@@ -151,15 +163,26 @@ void runCommandWithTimeout(const std::string& command,
   const unsigned long long terminationTicks = SECONDS / TEN_MS;
   unsigned long long totalTicks = processTicks + terminationTicks;
   struct timespec timeoutSpec = {0, TEN_MS};
-  pid_t pid = popen2(command, args);
   bool forceKill = false;
+  bool hasError = false;
+
+  if (!fileExists(command)) {
+    return Error("No such file or directory: \"" + command + "\"");
+  }
+
+  if (!isFileExecutable(command)) {
+    return Error("File is not executable: \"" + command + "\"");
+  }
+
+  pid_t pid = popen2(command, args);
 
   while (tick < totalTicks) {
     nanosleep(&timeoutSpec, NULL);
     if (tick == processTicks) {
+      hasError = true;
       LOG(WARNING) << "External command took too long to exit. "
-        << "Sending SIGTERM...";
-      if(kill(pid, SIGTERM) == -1) {
+                   << "Sending SIGTERM...";
+      if (kill(pid, SIGTERM) == -1) {
         LOG(ERROR) << "Failed to send SIGTERM: " << strerror(errno);
         break;
       }
@@ -169,6 +192,7 @@ void runCommandWithTimeout(const std::string& command,
     if (rc < 0) {
       LOG(ERROR) << "Error when waiting for child process running the "
                  << "external command: " << strerror(errno);
+      hasError = true;
       forceKill = true;
       break;
     }
@@ -178,12 +202,20 @@ void runCommandWithTimeout(const std::string& command,
     tick++;
   }
 
-  if(forceKill || tick == totalTicks) {
+  if (forceKill || tick == totalTicks) {
     LOG(WARNING) << "External command is still running. Sending SIGKILL...";
-    if(kill(pid, SIGKILL) == -1) {
+    if (kill(pid, SIGKILL) == -1) {
+      hasError = true;
       LOG(ERROR) << "Failed to kill the command: " << strerror(errno);
+    } else {
+      return Error("Command \"" + command + "\" was too long to return");
     }
   }
+
+  if (hasError) {
+    return Error("Failed to successfully run the command \"" + command + "\"");
+  }
+  return Nothing();
 }
 
 /*
@@ -199,28 +231,27 @@ void runCommandWithTimeout(const std::string& command,
  * @param timeout The timeout deadline before killing the child process.
  * @return The output of the command read from the output file.
  */
-std::string run(const std::string& command, const std::string& input,
-  int timeout) {
+Try<std::string> run(const std::string& command, const std::string& input,
+                     int timeout) {
   try {
     TemporaryFile inputFile;
     TemporaryFile outputFile;
     inputFile.write(input);
 
-    LOG(INFO) << "Fork and execute: " << command
-              << " " << inputFile.filepath()
+    LOG(INFO) << "Fork and execute: " << command << " " << inputFile.filepath()
               << " " << outputFile.filepath();
     std::vector<std::string> args;
     args.push_back(inputFile.filepath());
     args.push_back(outputFile.filepath());
-    runCommandWithTimeout(command, args, timeout);
+    Try<Nothing> result = runCommandWithTimeout(command, args, timeout);
+    if (result.isError()) {
+      return Error(result.error());
+    }
     return outputFile.readAll();
-  }
-  catch(const std::runtime_error& e) {
-    LOG(ERROR) << e.what();
-    return std::string();
+  } catch (const std::runtime_error& e) {
+    return Error("Unable to run \"" + command + "\": " + e.what());
   }
 }
-
 }
 }
 }
