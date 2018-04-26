@@ -16,44 +16,32 @@ using ::mesos::slave::ContainerLaunchInfo;
 
 using process::Failure;
 
-class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess>
-{
-public:
-  CommandIsolatorProcess(
-    const string& prepareCommand,
-    const string& cleanupCommand);
+class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
+ public:
+  CommandIsolatorProcess(const string& prepareCommand,
+                         const string& cleanupCommand);
 
   virtual process::Future<Option<ContainerLaunchInfo>> prepare(
-    const ContainerID& containerId,
-    const ContainerConfig& containerConfig);
+      const ContainerID& containerId, const ContainerConfig& containerConfig);
 
-  virtual process::Future<Nothing> cleanup(
-    const ContainerID& containerId);
+  virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
 
-  inline const std::string& prepareCommand() const {
-    return m_prepareCommand;
-  }
+  inline const std::string& prepareCommand() const { return m_prepareCommand; }
 
-  inline const std::string& cleanupCommand() const {
-    return m_cleanupCommand;
-  }
+  inline const std::string& cleanupCommand() const { return m_cleanupCommand; }
 
-private:
+ private:
   std::string m_prepareCommand;
   std::string m_cleanupCommand;
 };
 
-CommandIsolatorProcess::CommandIsolatorProcess(
-  const string& prepareCommand,
-  const string& cleanupCommand)
-  : m_prepareCommand(prepareCommand),
-    m_cleanupCommand(cleanupCommand) {
-}
+CommandIsolatorProcess::CommandIsolatorProcess(const string& prepareCommand,
+                                               const string& cleanupCommand)
+    : m_prepareCommand(prepareCommand), m_cleanupCommand(cleanupCommand) {}
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
-  const ContainerID& containerId,
-  const ContainerConfig& containerConfig) {
-  if(m_prepareCommand.empty()) {
+    const ContainerID& containerId, const ContainerConfig& containerConfig) {
+  if (m_prepareCommand.empty()) {
     return None();
   }
 
@@ -62,30 +50,29 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
   inputsJson.values["container_config"] = JSON::protobuf(containerConfig);
-  auto output = CommandRunner::run(
-    m_prepareCommand, stringify(inputsJson));
+  auto output = CommandRunner::run(m_prepareCommand, stringify(inputsJson));
 
-  if(output.isError()) {
+  if (output.isError()) {
     return Failure(output.error());
   }
 
-  if(output->empty()) {
+  if (output->empty()) {
     return None();
   }
 
   Result<ContainerLaunchInfo> containerLaunchInfo =
-    jsonToProtobuf<ContainerLaunchInfo>(output.get());
+      jsonToProtobuf<ContainerLaunchInfo>(output.get());
 
-  if(containerLaunchInfo.isError()) {
+  if (containerLaunchInfo.isError()) {
     return Failure("Unable to deserialize ContainerLaunchInfo: " +
-      containerLaunchInfo.error());
+                   containerLaunchInfo.error());
   }
   return containerLaunchInfo.get();
 }
 
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
-  const ContainerID& containerId) {
-  if(m_cleanupCommand.empty()) {
+    const ContainerID& containerId) {
+  if (m_cleanupCommand.empty()) {
     return Nothing();
   }
 
@@ -94,26 +81,23 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
-  auto output = CommandRunner::run(
-    m_cleanupCommand, stringify(inputsJson));
+  auto output = CommandRunner::run(m_cleanupCommand, stringify(inputsJson));
 
-  if(output.isError()) {
+  if (output.isError()) {
     return Failure(output.error());
   }
 
   return Nothing();
 }
 
-CommandIsolator::CommandIsolator(
-  const string& prepareCommand,
-  const string& cleanupCommand)
-  : m_process(new CommandIsolatorProcess(prepareCommand, cleanupCommand))
-{
+CommandIsolator::CommandIsolator(const string& prepareCommand,
+                                 const string& cleanupCommand)
+    : m_process(new CommandIsolatorProcess(prepareCommand, cleanupCommand)) {
   spawn(m_process);
 }
 
 CommandIsolator::~CommandIsolator() {
-  if(m_process != nullptr) {
+  if (m_process != nullptr) {
     terminate(m_process);
     wait(m_process);
     delete m_process;
@@ -121,19 +105,14 @@ CommandIsolator::~CommandIsolator() {
 }
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
-  const ContainerID& containerId,
-  const ContainerConfig& containerConfig) {
-  return dispatch(m_process,
-           &CommandIsolatorProcess::prepare,
-           containerId,
-           containerConfig);
+    const ContainerID& containerId, const ContainerConfig& containerConfig) {
+  return dispatch(m_process, &CommandIsolatorProcess::prepare, containerId,
+                  containerConfig);
 }
 
 process::Future<Nothing> CommandIsolator::cleanup(
-  const ContainerID& containerId){
-  return dispatch(m_process,
-           &CommandIsolatorProcess::cleanup,
-           containerId);
+    const ContainerID& containerId) {
+  return dispatch(m_process, &CommandIsolatorProcess::cleanup, containerId);
 }
 
 const string& CommandIsolator::prepareCommand() const {
@@ -145,6 +124,5 @@ const string& CommandIsolator::cleanupCommand() const {
   CHECK_NOTNULL(m_process);
   return m_process->cleanupCommand();
 }
-
 }
 }

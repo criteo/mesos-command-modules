@@ -6,21 +6,19 @@ extern std::string g_resourcesPath;
 
 using namespace criteo::mesos;
 
-class CommandHookTest : public ::testing::Test
-{
-protected:
+class CommandHookTest : public ::testing::Test {
+ protected:
   mesos::TaskInfo taskInfo;
   mesos::ExecutorInfo executorInfo;
   mesos::FrameworkInfo frameworkInfo;
   mesos::SlaveInfo slaveInfo;
 
-public:
-  void SetUp()
-  {
+ public:
+  void SetUp() {
     hook.reset(new CommandHook(
-      g_resourcesPath + "slaveRunTaskLabelDecorator.sh",
-      g_resourcesPath +"slaveExecutorEnvironmentDecorator.sh",
-      g_resourcesPath + "slaveRemoveExecutorHook.sh"));
+        g_resourcesPath + "slaveRunTaskLabelDecorator.sh",
+        g_resourcesPath + "slaveExecutorEnvironmentDecorator.sh",
+        g_resourcesPath + "slaveRemoveExecutorHook.sh"));
     taskInfo.set_name("test_task");
     taskInfo.mutable_task_id()->set_value("1");
     taskInfo.mutable_slave_id()->set_value("2");
@@ -45,9 +43,10 @@ public:
   std::unique_ptr<CommandHook> hook;
 };
 
-
-TEST_F(CommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_retrieve_labels) {
-  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo, frameworkInfo, slaveInfo);
+TEST_F(CommandHookTest,
+       should_run_slaveRunTaskLabelDecorator_command_and_retrieve_labels) {
+  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo,
+                                                 frameworkInfo, slaveInfo);
   ASSERT_TRUE(result.isSome());
   auto labels = result.get();
   ASSERT_EQ(labels.labels_size(), 2);
@@ -58,7 +57,9 @@ TEST_F(CommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_retrie
   ASSERT_EQ(labels.labels(1).value(), "test2");
 }
 
-TEST_F(CommandHookTest, should_run_slaveExecutorEnvironmentDecorator_command_and_retrieve_environment_variables) {
+TEST_F(
+    CommandHookTest,
+    should_run_slaveExecutorEnvironmentDecorator_command_and_retrieve_environment_variables) {
   auto result = hook->slaveExecutorEnvironmentDecorator(executorInfo);
   ASSERT_TRUE(result.isSome());
   auto environment = result.get();
@@ -74,55 +75,60 @@ TEST_F(CommandHookTest, should_run_slaveRemoveExecutorHook_command) {
   hook->slaveRemoveExecutorHook(frameworkInfo, executorInfo);
 }
 
-class UnexistingCommandHookTest : public CommandHookTest
-{
-public:
+class UnexistingCommandHookTest : public CommandHookTest {
+ public:
   void SetUp() {
     CommandHookTest::SetUp();
-    hook.reset(new CommandHook(
-      "unexisting.sh",
-      "unexisting.sh",
-      "unexisting.sh"));
+    hook.reset(
+        new CommandHook("unexisting.sh", "unexisting.sh", "unexisting.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
 
-TEST_F(UnexistingCommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_handle_unexisting_command) {
-  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo, frameworkInfo, slaveInfo);
+TEST_F(
+    UnexistingCommandHookTest,
+    should_run_slaveRunTaskLabelDecorator_command_and_handle_unexisting_command) {
+  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo,
+                                                 frameworkInfo, slaveInfo);
   ASSERT_TRUE(result.isError());
 }
 
-TEST_F(UnexistingCommandHookTest, should_run_slaveExecutorEnvironmentDecorator_command_and_handle_unexisting_command) {
+TEST_F(
+    UnexistingCommandHookTest,
+    should_run_slaveExecutorEnvironmentDecorator_command_and_handle_unexisting_command) {
   auto result = hook->slaveExecutorEnvironmentDecorator(executorInfo);
   ASSERT_TRUE(result.isError());
 }
 
-class MalformedCommandHookTest : public CommandHookTest
-{
-public:
+class MalformedCommandHookTest : public CommandHookTest {
+ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-      g_resourcesPath + "slaveRunTaskLabelDecorator_malformed.sh",
-      g_resourcesPath + "slaveExecutorEnvironmentDecorator_malformed.sh",
-      g_resourcesPath + "slaveRemoveExecutorHook_malformed.sh"));
+        g_resourcesPath + "slaveRunTaskLabelDecorator_malformed.sh",
+        g_resourcesPath + "slaveExecutorEnvironmentDecorator_malformed.sh",
+        g_resourcesPath + "slaveRemoveExecutorHook_malformed.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
 
-TEST_F(MalformedCommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_handle_malformed_output_json) {
-  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo, frameworkInfo, slaveInfo);
+TEST_F(
+    MalformedCommandHookTest,
+    should_run_slaveRunTaskLabelDecorator_command_and_handle_malformed_output_json) {
+  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo,
+                                                 frameworkInfo, slaveInfo);
   ASSERT_TRUE(result.isError());
 }
 
-TEST_F(MalformedCommandHookTest, should_run_slaveExecutorEnvironmentDecorator_command_and_handle_malformed_output_json) {
+TEST_F(
+    MalformedCommandHookTest,
+    should_run_slaveExecutorEnvironmentDecorator_command_and_handle_malformed_output_json) {
   auto result = hook->slaveExecutorEnvironmentDecorator(executorInfo);
   ASSERT_TRUE(result.isError());
 }
 
-class EmptyCommandHookTest : public CommandHookTest
-{
-public:
+class EmptyCommandHookTest : public CommandHookTest {
+ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook("", "", ""));
@@ -130,35 +136,44 @@ public:
   std::unique_ptr<CommandHook> hook;
 };
 
-TEST_F(EmptyCommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_retrieve_labels) {
-  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo, frameworkInfo, slaveInfo);
+TEST_F(EmptyCommandHookTest,
+       should_run_slaveRunTaskLabelDecorator_command_and_retrieve_labels) {
+  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo,
+                                                 frameworkInfo, slaveInfo);
   ASSERT_TRUE(result.isNone());
 }
 
-TEST_F(EmptyCommandHookTest, should_run_slaveExecutorEnvironmentDecorator_command_and_retrieve_environment_variables) {
+TEST_F(
+    EmptyCommandHookTest,
+    should_run_slaveExecutorEnvironmentDecorator_command_and_retrieve_environment_variables) {
   auto result = hook->slaveExecutorEnvironmentDecorator(executorInfo);
   ASSERT_TRUE(result.isNone());
 }
 
-class IncorrectProtobufCommandHookTest : public CommandHookTest
-{
-public:
+class IncorrectProtobufCommandHookTest : public CommandHookTest {
+ public:
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-      g_resourcesPath + "slaveRunTaskLabelDecorator_incorrect_protobuf.sh",
-      g_resourcesPath + "slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh",
-      g_resourcesPath + "slaveRemoveExecutorHook_incorrect_protobuf.sh"));
+        g_resourcesPath + "slaveRunTaskLabelDecorator_incorrect_protobuf.sh",
+        g_resourcesPath +
+            "slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh",
+        g_resourcesPath + "slaveRemoveExecutorHook_incorrect_protobuf.sh"));
   }
   std::unique_ptr<CommandHook> hook;
 };
 
-TEST_F(IncorrectProtobufCommandHookTest, should_run_slaveRunTaskLabelDecorator_command_and_handle_incorrect_protobuf_output) {
-  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo, frameworkInfo, slaveInfo);
+TEST_F(
+    IncorrectProtobufCommandHookTest,
+    should_run_slaveRunTaskLabelDecorator_command_and_handle_incorrect_protobuf_output) {
+  auto result = hook->slaveRunTaskLabelDecorator(taskInfo, executorInfo,
+                                                 frameworkInfo, slaveInfo);
   ASSERT_TRUE(result.isError());
 }
 
-TEST_F(IncorrectProtobufCommandHookTest, should_run_slaveExecutorEnvironmentDecorator_command_and_handle_incorrect_protobuf_output) {
+TEST_F(
+    IncorrectProtobufCommandHookTest,
+    should_run_slaveExecutorEnvironmentDecorator_command_and_handle_incorrect_protobuf_output) {
   auto result = hook->slaveExecutorEnvironmentDecorator(executorInfo);
   ASSERT_TRUE(result.isError());
 }

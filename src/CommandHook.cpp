@@ -8,18 +8,16 @@ namespace mesos {
 CommandHook::CommandHook(const std::string& runTaskLabelCommand,
                          const std::string& executorEnvironmentCommand,
                          const std::string& removeExecutorCommand)
-  : m_runTaskLabelCommand(runTaskLabelCommand),
-    m_executorEnvironmentCommand(executorEnvironmentCommand),
-    m_removeExecutorCommand(removeExecutorCommand)
-{
-}
+    : m_runTaskLabelCommand(runTaskLabelCommand),
+      m_executorEnvironmentCommand(executorEnvironmentCommand),
+      m_removeExecutorCommand(removeExecutorCommand) {}
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
-  const ::mesos::TaskInfo& taskInfo,
-  const ::mesos::ExecutorInfo& executorInfo,
-  const ::mesos::FrameworkInfo& frameworkInfo,
-  const ::mesos::SlaveInfo& slaveInfo) {
-  if(m_runTaskLabelCommand.empty()) {
+    const ::mesos::TaskInfo& taskInfo,
+    const ::mesos::ExecutorInfo& executorInfo,
+    const ::mesos::FrameworkInfo& frameworkInfo,
+    const ::mesos::SlaveInfo& slaveInfo) {
+  if (m_runTaskLabelCommand.empty()) {
     return None();
   }
 
@@ -31,10 +29,10 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["slave_info"] = JSON::protobuf(slaveInfo);
-  auto output = CommandRunner::run(
-    m_runTaskLabelCommand, stringify(inputsJson));
+  auto output =
+      CommandRunner::run(m_runTaskLabelCommand, stringify(inputsJson));
 
-  if(output.isError()) {
+  if (output.isError()) {
     return Error(output.error());
   }
 
@@ -42,8 +40,8 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
 }
 
 Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
-  const ::mesos::ExecutorInfo& executorInfo) {
-  if(m_executorEnvironmentCommand.empty()) {
+    const ::mesos::ExecutorInfo& executorInfo) {
+  if (m_executorEnvironmentCommand.empty()) {
     return None();
   }
 
@@ -52,10 +50,10 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
 
   JSON::Object inputsJson;
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  auto output = CommandRunner::run(
-    m_executorEnvironmentCommand, stringify(inputsJson));
+  auto output =
+      CommandRunner::run(m_executorEnvironmentCommand, stringify(inputsJson));
 
-  if(output.isError()) {
+  if (output.isError()) {
     return Error(output.error());
   }
 
@@ -63,9 +61,9 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
 }
 
 Try<Nothing> CommandHook::slaveRemoveExecutorHook(
-  const ::mesos::FrameworkInfo& frameworkInfo,
-  const ::mesos::ExecutorInfo& executorInfo) {
-  if(m_removeExecutorCommand.empty()) return Nothing();
+    const ::mesos::FrameworkInfo& frameworkInfo,
+    const ::mesos::ExecutorInfo& executorInfo) {
+  if (m_removeExecutorCommand.empty()) return Nothing();
 
   LOG(INFO) << "slaveRemoveExecutorHook: calling command \""
             << m_removeExecutorCommand << "\"";
@@ -73,10 +71,10 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  auto output = CommandRunner::run(
-    m_removeExecutorCommand, stringify(inputsJson));
+  auto output =
+      CommandRunner::run(m_removeExecutorCommand, stringify(inputsJson));
 
-  if(output.isError()) {
+  if (output.isError()) {
     return Error(output.error());
   }
 

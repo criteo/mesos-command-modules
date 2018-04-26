@@ -3,8 +3,8 @@
 
 #include <string>
 
-#include <mesos/slave/isolator.hpp>
 #include <mesos/module/isolator.hpp>
+#include <mesos/slave/isolator.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -20,9 +20,8 @@ class CommandIsolatorProcess;
  * killing the child process after a certain amount of time if it does not
  * exit.
  */
-class CommandIsolator : public ::mesos::slave::Isolator
-{
-public:
+class CommandIsolator : public ::mesos::slave::Isolator {
+ public:
   /*
    * Constructor
    * Each argument can be empty. In that case the corresponding
@@ -33,9 +32,8 @@ public:
    * @param cleanupCommand The command to execute when `cleanup` event is
    *   is triggered for a given container.
    */
-  CommandIsolator(
-    const std::string& prepareCommand,
-    const std::string& cleanupCommand);
+  CommandIsolator(const std::string& prepareCommand,
+                  const std::string& cleanupCommand);
 
   /**
    * Destructor
@@ -53,8 +51,8 @@ public:
    * @return A future resolving an optional ContainerLaunchInfo if successful.
    */
   virtual process::Future<Option<::mesos::slave::ContainerLaunchInfo>> prepare(
-    const ::mesos::ContainerID& containerId,
-    const ::mesos::slave::ContainerConfig& containerConfig);
+      const ::mesos::ContainerID& containerId,
+      const ::mesos::slave::ContainerConfig& containerConfig);
 
   /**
    * Run an external command on cleanup phase of a given container.
@@ -64,7 +62,7 @@ public:
    * @return A future resolving nothing if successful.
    */
   virtual process::Future<Nothing> cleanup(
-    const ::mesos::ContainerID& containerId);
+      const ::mesos::ContainerID& containerId);
 
   /**
    * Get prepare command.
@@ -76,10 +74,9 @@ public:
    */
   const std::string& cleanupCommand() const;
 
-private:
+ private:
   CommandIsolatorProcess* m_process;
 };
-
 }
 }
 

@@ -16,9 +16,8 @@ namespace mesos {
  * the Mesos agent. The hook is also protected from infinite loop by killing
  * the child process after a certain amount of time if it does not exit.
  */
-class CommandHook : public ::mesos::Hook
-{
-public:
+class CommandHook : public ::mesos::Hook {
+ public:
   /*
    * Constructor
    * Each argument can be empty. In that case the corresponding hook
@@ -31,9 +30,9 @@ public:
    * @param removeExecutorCommand The command used by
    * slaveRemoveExecutorHook if provided.
    */
-  CommandHook(const std::string& runTaskLabelCommand,
-              const std::string& executorEnvironmentCommand,
-              const std::string& removeExecutorCommand);
+  CommandHook(const std::string &runTaskLabelCommand,
+              const std::string &executorEnvironmentCommand,
+              const std::string &removeExecutorCommand);
   virtual ~CommandHook() {}
 
   /*
@@ -49,10 +48,10 @@ public:
    * @return The labels to add to the executor.
    */
   virtual Result<::mesos::Labels> slaveRunTaskLabelDecorator(
-    const ::mesos::TaskInfo& taskInfo,
-    const ::mesos::ExecutorInfo& executorInfo,
-    const ::mesos::FrameworkInfo& frameworkInfo,
-    const ::mesos::SlaveInfo& slaveInfo) override;
+      const ::mesos::TaskInfo &taskInfo,
+      const ::mesos::ExecutorInfo &executorInfo,
+      const ::mesos::FrameworkInfo &frameworkInfo,
+      const ::mesos::SlaveInfo &slaveInfo) override;
 
   /*
    * Run an external command producing a list of environment variables to
@@ -65,7 +64,7 @@ public:
    * @return The environment variables to add to the executor.
    */
   virtual Result<::mesos::Environment> slaveExecutorEnvironmentDecorator(
-    const ::mesos::ExecutorInfo& executorInfo) override;
+      const ::mesos::ExecutorInfo &executorInfo) override;
 
   /*
    * Run an external command when an executor is removed from the agent.
@@ -76,27 +75,26 @@ public:
    * @param executorInfo The information regarding the executor.
    */
   virtual Try<Nothing> slaveRemoveExecutorHook(
-    const ::mesos::FrameworkInfo& frameworkInfo,
-    const ::mesos::ExecutorInfo& executorInfo) override;
+      const ::mesos::FrameworkInfo &frameworkInfo,
+      const ::mesos::ExecutorInfo &executorInfo) override;
 
-  inline const std::string& runTaskLabelCommand() const {
+  inline const std::string &runTaskLabelCommand() const {
     return m_runTaskLabelCommand;
   }
 
-  inline const std::string& executorEnvironmentCommand() const {
+  inline const std::string &executorEnvironmentCommand() const {
     return m_executorEnvironmentCommand;
   }
 
-  inline const std::string& removeExecutorCommand() const {
+  inline const std::string &removeExecutorCommand() const {
     return m_removeExecutorCommand;
   }
 
-private:
+ private:
   std::string m_runTaskLabelCommand;
   std::string m_executorEnvironmentCommand;
   std::string m_removeExecutorCommand;
 };
-
 }
 }
 
