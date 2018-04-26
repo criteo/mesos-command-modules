@@ -27,6 +27,10 @@ otherwise the Travis job will fail. To apply clang-format, type:
 make clang-format
 ```
 
+## Deploy a test environment
+
+Follow [examples/README.md](./examples/README.md).
+
 ## Design choices
 
 ### Forking a process for each event
@@ -41,3 +45,11 @@ We implemented passing inputs and retrieving outputs from the external
 commands with temporary files for simplicity. Indeed, a lot of programming
 languages can easily read the content of a file while reading a pipe is not
 so trivial (see the tests).
+
+## TODO
+
+* Implement all methods of the isolator interface
+* Add tests to check the behavior of the CommandRunner when temporary files are
+  manually deleted when a script is running.
+* Automate integration tests using docker-compose in examples/ to execute it in
+  Travis and ensure non-regression.

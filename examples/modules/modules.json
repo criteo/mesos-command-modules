@@ -7,16 +7,29 @@
            "name": "com_criteo_mesos_CommandHook",
            "parameters": [
              {
-               "key": "slave_run_task_label_decorator",
+               "key": "hook_slave_run_task_label_decorator",
                "value": "/tmp/mesos/modules/slaveRunTaskLabelDecorator.sh"
              },
              {
-               "key": "slave_executor_environment_decorator",
+               "key": "hook_slave_executor_environment_decorator",
                "value": "/tmp/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
              },
              {
-               "key": "slave_remove_executor_hook",
+               "key": "hook_slave_remove_executor_hook",
                "value": "/tmp/mesos/modules/slaveRemoveExecutorHook.sh"
+             }
+           ]
+         },
+         {
+           "name": "com_criteo_mesos_CommandIsolator",
+           "parameters": [
+             {
+               "key": "isolator_prepare",
+               "value": "/tmp/mesos/modules/prepare.sh"
+             },
+             {
+               "key": "isolator_cleanup",
+               "value": "/tmp/mesos/modules/cleanup.sh"
              }
            ]
          }

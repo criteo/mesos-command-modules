@@ -59,7 +59,7 @@ services:
       MESOS_SYSTEMD_ENABLE_SUPPORT: "false"
       MESOS_FRAMEWORKS_HOME: /var/tmp/mesos/frameworks
       MESOS_IMAGE_PROVIDERS: docker
-      MESOS_ISOLATION: filesystem/linux,docker/runtime
+      MESOS_ISOLATION: filesystem/linux,docker/runtime,com_criteo_mesos_CommandIsolator
       MESOS_HOOKS: com_criteo_mesos_CommandHook
       LIBPROCESS_IP: 172.16.121.4
     volumes:
