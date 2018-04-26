@@ -12,6 +12,14 @@ namespace mesos {
 // Forward declaration
 class CommandIsolatorProcess;
 
+/**
+ * Isolator calling external commands to handle isolator events.
+ *
+ * The external command is executed in a fork so that it does not threaten
+ * the Mesos agent. The isolator is also protected from infinite loop by
+ * killing the child process after a certain amount of time if it does not
+ * exit.
+ */
 class CommandIsolator : public ::mesos::slave::Isolator
 {
 public:

@@ -9,6 +9,13 @@
 namespace criteo {
 namespace mesos {
 
+/**
+ * Hook calling external commands to handle hook events.
+ *
+ * The external command is executed in a fork so that it does not threaten
+ * the Mesos agent. The hook is also protected from infinite loop by killing
+ * the child process after a certain amount of time if it does not exit.
+ */
 class CommandHook : public ::mesos::Hook
 {
 public:
@@ -52,7 +59,7 @@ public:
    * add to the executor. The command is provided with a JSON containing
    * all the information required to compute the list of environment
    * variables. The output of the command is a JSON that is parsed into
-   * mesos::Evironment. 
+   * mesos::Evironment.
    *
    * @param executorInfo The information regarding the executor.
    * @return The environment variables to add to the executor.
@@ -79,7 +86,7 @@ public:
   inline const std::string& executorEnvironmentCommand() const {
     return m_executorEnvironmentCommand;
   }
-  
+
   inline const std::string& removeExecutorCommand() const {
     return m_removeExecutorCommand;
   }
