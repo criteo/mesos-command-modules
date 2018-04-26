@@ -2,26 +2,28 @@
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
 
+namespace criteo {
+namespace mesos {
+
+using std::map;
+using std::string;
+
 /*
  * Parameters for hook
  */
 const std::string SLAVE_RUN_TASK_LABEL_DECORATOR_KEY =
-  "slave_run_task_label_decorator";
+  "hook_slave_run_task_label_decorator";
 const std::string SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY =
-  "slave_executor_environment_decorator";
+  "hook_slave_executor_environment_decorator";
 const std::string SLAVE_REMOVE_EXECUTOR_KEY =
-  "slave_remove_executor_hook";
+  "hook_slave_remove_executor_hook";
 
 /*
  * Parameters for isolator
  */
-const std::string PREPARE_KEY = "prepare";
-const std::string CLEANUP_KEY = "cleanup";
+const std::string PREPARE_KEY = "isolator_prepare";
+const std::string CLEANUP_KEY = "isolator_cleanup";
 
-namespace criteo {
-namespace mesos {
-
-using namespace std;
 
 map<string, string> toMap(
   const ::mesos::Parameters& parameters) {

@@ -11,15 +11,15 @@ using namespace criteo::mesos;
 TEST(ModulesFactoryTest, should_create_hook_with_correct_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
-  var->set_key("slave_run_task_label_decorator");
+  var->set_key("hook_slave_run_task_label_decorator");
   var->set_value("command_slave_run_task_label_decorator");
 
   var = parameters.add_parameter();
-  var->set_key("slave_executor_environment_decorator");
+  var->set_key("hook_slave_executor_environment_decorator");
   var->set_value("command_slave_executor_environment_decorator");
 
   var = parameters.add_parameter();
-  var->set_key("slave_remove_executor_hook");
+  var->set_key("hook_slave_remove_executor_hook");
   var->set_value("command_slave_remove_executor_hook");
 
   std::unique_ptr<CommandHook> hook(dynamic_cast<CommandHook*>(createHook(parameters)));
@@ -32,7 +32,7 @@ TEST(ModulesFactoryTest, should_create_hook_with_correct_parameters) {
 TEST(ModulesFactoryTest, should_create_hook_with_empty_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
-  var->set_key("slave_executor_environment_decorator");
+  var->set_key("hook_slave_executor_environment_decorator");
   var->set_value("command_slave_executor_environment_decorator");
 
   std::unique_ptr<CommandHook> hook(dynamic_cast<CommandHook*>(createHook(parameters)));
@@ -48,11 +48,11 @@ TEST(ModulesFactoryTest, should_create_hook_with_empty_parameters) {
 TEST(ModulesFactoryTest, should_create_isolator_with_correct_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
-  var->set_key("prepare");
+  var->set_key("isolator_prepare");
   var->set_value("command_prepare");
 
   var = parameters.add_parameter();
-  var->set_key("cleanup");
+  var->set_key("isolator_cleanup");
   var->set_value("command_cleanup");
 
   std::unique_ptr<CommandIsolator> isolator(
@@ -65,7 +65,7 @@ TEST(ModulesFactoryTest, should_create_isolator_with_correct_parameters) {
 TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
-  var->set_key("prepare");
+  var->set_key("isolator_prepare");
   var->set_value("command_prepare");
 
   std::unique_ptr<CommandIsolator> isolator(
