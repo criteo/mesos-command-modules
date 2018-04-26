@@ -30,6 +30,14 @@ public:
   virtual process::Future<Nothing> cleanup(
     const ContainerID& containerId);
 
+  inline const std::string& prepareCommand() const {
+    return m_prepareCommand;
+  }
+
+  inline const std::string& cleanupCommand() const {
+    return m_cleanupCommand;
+  }
+
 private:
   std::string m_prepareCommand;
   std::string m_cleanupCommand;
@@ -126,6 +134,16 @@ process::Future<Nothing> CommandIsolator::cleanup(
   return dispatch(m_process,
            &CommandIsolatorProcess::cleanup,
            containerId);
+}
+
+const string& CommandIsolator::prepareCommand() const {
+  CHECK_NOTNULL(m_process);
+  return m_process->prepareCommand();
+}
+
+const string& CommandIsolator::cleanupCommand() const {
+  CHECK_NOTNULL(m_process);
+  return m_process->cleanupCommand();
 }
 
 }

@@ -58,6 +58,16 @@ public:
   virtual process::Future<Nothing> cleanup(
     const ::mesos::ContainerID& containerId);
 
+  /**
+   * Get prepare command.
+   */
+  const std::string& prepareCommand() const;
+
+  /**
+   * Get cleanup command.
+   */
+  const std::string& cleanupCommand() const;
+
 private:
   CommandIsolatorProcess* m_process;
 };
