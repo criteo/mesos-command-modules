@@ -10,6 +10,7 @@ cd build
 
 cmake ..
 
+export PATH=$PATH:/opt/llvm-3.8.0/bin
 make clang-format
 
 updated_files_count=`git diff --name-only | wc -l`
