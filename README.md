@@ -3,6 +3,10 @@
 This repository is a collection of **experimental** mesos modules
 delegating the events to external commands.
 
+Here is the list of supported modules:
+- Hook (all methods)
+- Isolator (prepare and cleanup methods only)
+
 This project is not battle-tested, use it at your own risk.
 
 ## Build Instructions
@@ -14,6 +18,13 @@ This project is not battle-tested, use it at your own risk.
     $ cmake ..
     $ make
     $ make test
+```
+
+Please note that you must run **clang-format** before commiting your change,
+otherwise the Travis job will fail. To apply clang-format, type:
+
+```shell
+make clang-format
 ```
 
 ## Design choices

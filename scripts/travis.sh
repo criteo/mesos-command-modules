@@ -1,5 +1,8 @@
 #!/bin/bash
 
+set +e
+set +x
+
 cd mesos-command-modules
 
 mkdir build
