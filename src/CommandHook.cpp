@@ -5,12 +5,17 @@
 namespace criteo {
 namespace mesos {
 
-CommandHook::CommandHook(const std::string& runTaskLabelCommand,
-                         const std::string& executorEnvironmentCommand,
-                         const std::string& removeExecutorCommand)
+using std::string;
+
+const int TIMEOUT_SECONDS = 10;
+
+CommandHook::CommandHook(const string& runTaskLabelCommand,
+                         const string& executorEnvironmentCommand,
+                         const string& removeExecutorCommand, bool isDebugMode)
     : m_runTaskLabelCommand(runTaskLabelCommand),
       m_executorEnvironmentCommand(executorEnvironmentCommand),
-      m_removeExecutorCommand(removeExecutorCommand) {}
+      m_removeExecutorCommand(removeExecutorCommand),
+      m_isDebugMode(isDebugMode) {}
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
     const ::mesos::TaskInfo& taskInfo,
@@ -29,8 +34,9 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["slave_info"] = JSON::protobuf(slaveInfo);
-  auto output =
-      CommandRunner::run(m_runTaskLabelCommand, stringify(inputsJson));
+  Try<string> output =
+      CommandRunner::run(m_runTaskLabelCommand, stringify(inputsJson),
+                         TIMEOUT_SECONDS, m_isDebugMode);
 
   if (output.isError()) {
     return Error(output.error());
@@ -50,8 +56,9 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
 
   JSON::Object inputsJson;
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  auto output =
-      CommandRunner::run(m_executorEnvironmentCommand, stringify(inputsJson));
+  Try<string> output =
+      CommandRunner::run(m_executorEnvironmentCommand, stringify(inputsJson),
+                         TIMEOUT_SECONDS, m_isDebugMode);
 
   if (output.isError()) {
     return Error(output.error());
@@ -71,8 +78,9 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
-  auto output =
-      CommandRunner::run(m_removeExecutorCommand, stringify(inputsJson));
+  Try<string> output =
+      CommandRunner::run(m_removeExecutorCommand, stringify(inputsJson),
+                         TIMEOUT_SECONDS, m_isDebugMode);
 
   if (output.isError()) {
     return Error(output.error());

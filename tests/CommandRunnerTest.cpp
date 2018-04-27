@@ -13,8 +13,8 @@ extern string g_resourcesPath;
 
 TEST(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
   Try<string> output =
-      CommandRunner::run(g_resourcesPath + "pipe_input.sh", "HELLO");
-  EXPECT_EQ(output.get(), "HELLO");
+      CommandRunner::run(g_resourcesPath + "pipe_input.sh", "HELLO", 10, true);
+  EXPECT_EQ(output.get(), "HELLO > output");
 }
 
 TEST(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
