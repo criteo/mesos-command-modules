@@ -1,4 +1,6 @@
 #!/bin/sh
 
-cat $1 > $2
+INPUT=`cat $1`
+
+echo -n "$INPUT > output" > $2
 

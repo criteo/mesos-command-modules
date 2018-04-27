@@ -24,15 +24,18 @@ class CommandHook : public ::mesos::Hook {
    * method will not be treated.
    *
    * @param runTaskLabelCommand The command used by
-   * slaveRunTaskLabelDecorator method if provided.
+   *   slaveRunTaskLabelDecorator method if provided.
    * @param executorEnvironmentCommand The command used by
-   * slaveExecutorEnvironmentDecorator if provided.
+   *   slaveExecutorEnvironmentDecorator if provided.
    * @param removeExecutorCommand The command used by
-   * slaveRemoveExecutorHook if provided.
+   *   slaveRemoveExecutorHook if provided.
+   * @param isDebugMode If true, logs inputs and outputs of the commands,
+   *   otherwise logs nothing
    */
   CommandHook(const std::string &runTaskLabelCommand,
               const std::string &executorEnvironmentCommand,
-              const std::string &removeExecutorCommand);
+              const std::string &removeExecutorCommand,
+              bool isDebugMode = false);
   virtual ~CommandHook() {}
 
   /*
@@ -94,6 +97,7 @@ class CommandHook : public ::mesos::Hook {
   std::string m_runTaskLabelCommand;
   std::string m_executorEnvironmentCommand;
   std::string m_removeExecutorCommand;
+  bool m_isDebugMode;
 };
 }
 }
