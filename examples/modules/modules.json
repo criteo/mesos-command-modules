@@ -1,39 +1,47 @@
- {
-   "libraries": [
-     {
-       "file": "/tmp/mesos/modules/libmesos_command_modules.so",
-       "modules": [
-         {
-           "name": "com_criteo_mesos_CommandHook",
-           "parameters": [
-             {
-               "key": "hook_slave_run_task_label_decorator",
-               "value": "/tmp/mesos/modules/slaveRunTaskLabelDecorator.sh"
-             },
-             {
-               "key": "hook_slave_executor_environment_decorator",
-               "value": "/tmp/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
-             },
-             {
-               "key": "hook_slave_remove_executor_hook",
-               "value": "/tmp/mesos/modules/slaveRemoveExecutorHook.sh"
-             }
-           ]
-         },
-         {
-           "name": "com_criteo_mesos_CommandIsolator",
-           "parameters": [
-             {
-               "key": "isolator_prepare",
-               "value": "/tmp/mesos/modules/prepare.sh"
-             },
-             {
-               "key": "isolator_cleanup",
-               "value": "/tmp/mesos/modules/cleanup.sh"
-             }
-           ]
-         }
-       ]
-     }
-   ]
- }
+{
+  "libraries": [
+    {
+      "file": "/tmp/mesos/modules/libmesos_command_modules.so",
+      "modules": [
+        {
+          "name": "com_criteo_mesos_CommandHook",
+          "parameters": [
+            {
+              "key": "hook_slave_run_task_label_decorator",
+              "value": "/tmp/mesos/modules/slaveRunTaskLabelDecorator.sh"
+            },
+            {
+              "key": "hook_slave_executor_environment_decorator",
+              "value": "/tmp/mesos/modules/slaveExecutorEnvironmentDecorator.sh"
+            },
+            {
+              "key": "hook_slave_remove_executor_hook",
+              "value": "/tmp/mesos/modules/slaveRemoveExecutorHook.sh"
+            },
+            {
+              "key": "debug",
+              "value": "false"
+            }
+          ]
+        },
+        {
+          "name": "com_criteo_mesos_CommandIsolator",
+          "parameters": [
+            {
+              "key": "isolator_prepare",
+              "value": "/tmp/mesos/modules/prepare.sh"
+            },
+            {
+              "key": "isolator_cleanup",
+              "value": "/tmp/mesos/modules/cleanup.sh"
+            },
+            {
+              "key": "debug",
+              "value": "false"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

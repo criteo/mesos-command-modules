@@ -11,17 +11,19 @@ using std::string;
 /*
  * Parameters for hook
  */
-const std::string SLAVE_RUN_TASK_LABEL_DECORATOR_KEY =
+const string SLAVE_RUN_TASK_LABEL_DECORATOR_KEY =
     "hook_slave_run_task_label_decorator";
-const std::string SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY =
+const string SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY =
     "hook_slave_executor_environment_decorator";
-const std::string SLAVE_REMOVE_EXECUTOR_KEY = "hook_slave_remove_executor_hook";
+const string SLAVE_REMOVE_EXECUTOR_KEY = "hook_slave_remove_executor_hook";
 
 /*
  * Parameters for isolator
  */
-const std::string PREPARE_KEY = "isolator_prepare";
-const std::string CLEANUP_KEY = "isolator_cleanup";
+const string PREPARE_KEY = "isolator_prepare";
+const string CLEANUP_KEY = "isolator_cleanup";
+
+const string DEBUG_KEY = "debug";
 
 map<string, string> toMap(const ::mesos::Parameters& parameters) {
   map<string, string> kv;
@@ -42,20 +44,23 @@ string getOrEmpty(const map<string, string>& kv, const string& key) {
 
 ::mesos::Hook* createHook(const ::mesos::Parameters& parameters) {
   map<string, string> p = toMap(parameters);
-  auto runTaskLabelCommand = getOrEmpty(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
-  auto executorEnvironmentCommand =
+  string runTaskLabelCommand =
+      getOrEmpty(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
+  string executorEnvironmentCommand =
       getOrEmpty(p, SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY);
-  auto removeExecutorCommand = getOrEmpty(p, SLAVE_REMOVE_EXECUTOR_KEY);
+  string removeExecutorCommand = getOrEmpty(p, SLAVE_REMOVE_EXECUTOR_KEY);
+  bool isDebugMode = getOrEmpty(p, DEBUG_KEY) == "true";
   return new CommandHook(runTaskLabelCommand, executorEnvironmentCommand,
-                         removeExecutorCommand);
+                         removeExecutorCommand, isDebugMode);
 }
 
 ::mesos::slave::Isolator* createIsolator(
     const ::mesos::Parameters& parameters) {
   map<string, string> p = toMap(parameters);
-  auto prepareCommand = getOrEmpty(p, PREPARE_KEY);
-  auto cleanupCommand = getOrEmpty(p, CLEANUP_KEY);
-  return new CommandIsolator(prepareCommand, cleanupCommand);
+  string prepareCommand = getOrEmpty(p, PREPARE_KEY);
+  string cleanupCommand = getOrEmpty(p, CLEANUP_KEY);
+  bool isDebugMode = getOrEmpty(p, DEBUG_KEY) == "true";
+  return new CommandIsolator(prepareCommand, cleanupCommand, isDebugMode);
 }
 }
 }

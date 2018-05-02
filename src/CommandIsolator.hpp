@@ -31,9 +31,11 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    *   is triggered for a given container.
    * @param cleanupCommand The command to execute when `cleanup` event is
    *   is triggered for a given container.
+   * @param isDebugMode If true, logs inputs and outputs of the commands,
+   *   otherwise logs nothing
    */
   CommandIsolator(const std::string& prepareCommand,
-                  const std::string& cleanupCommand);
+                  const std::string& cleanupCommand, bool isDebugMode = false);
 
   /**
    * Destructor
