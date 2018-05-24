@@ -37,9 +37,11 @@ class TemporaryFile {
  public:
   TemporaryFile() {
     char filepath[] = TEMP_FILE_TEMPLATE;
-    if (mkstemp(filepath) == -1)
+    int fd = mkstemp(filepath);
+    if (fd == -1)
       throw std::runtime_error(
           "Unable to create temporary file to run commands");
+    close(fd);
     m_filepath = std::string(filepath);
   }
 
