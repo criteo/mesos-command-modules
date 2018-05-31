@@ -1,5 +1,7 @@
 # Mesos Command Modules
 
+[![Build Status](https://api.travis-ci.org/criteo/mesos-command-modules.svg?branch=master)](https://travis-ci.org/criteo/mesos-command-modules)
+
 This repository is a collection of **experimental** mesos modules
 delegating the events to external commands.
 
