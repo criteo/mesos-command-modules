@@ -105,11 +105,16 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
   int p_stdin[2], p_stdout[2];
   pid_t pid;
   if (pipe(p_stdin) != 0 || pipe(p_stdout) != 0) {
+    // TODO: avoid leaking fd that have possibly be opened
     return -1;
   }
 
   pid = fork();
   if (pid < 0) {
+    close(p_stdin[WRITE]);
+    close(p_stdin[READ]);
+    close(p_stdout[WRITE]);
+    close(p_stdout[READ]);
     return pid;
   } else if (pid == 0)  // executed in child
   {
@@ -126,6 +131,8 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
     dup2(p_stdout[WRITE], WRITE);
     execv(command.c_str(), &nullTerminatedArgs[0]);
 
+    //TODO: properly close relevant fd here
+
     // This code will only be reached if execl fails according to the
     // documentation: https://linux.die.net/man/3/execl
     LOG(ERROR) << "Error when executing command \"" << command
@@ -139,11 +146,13 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
   } else {
     *infp = p_stdin[WRITE];
   }
+  close(p_stdin[READ]);
   if (outfp == NULL) {
     close(p_stdout[READ]);
   } else {
     *outfp = p_stdout[READ];
   }
+  close(p_stdout[WRITE]);
   return pid;
 }
 
