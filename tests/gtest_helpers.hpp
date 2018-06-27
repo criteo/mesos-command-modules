@@ -18,4 +18,8 @@
   EXPECT_FALSE(futureResult.wait_for(std::chrono::milliseconds(X)) !=          \
                std::future_status::timeout);
 
+#define EXPECT_ERROR_MESSAGE(actual, expectedMessage)                    \
+  EXPECT_TRUE(actual.isError());                                         \
+  EXPECT_EQ(actual.error(), expectedMessage);
+
 #endif

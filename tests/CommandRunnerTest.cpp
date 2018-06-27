@@ -34,7 +34,12 @@ TEST(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
 }
 
 TEST(CommandRunnerTest, should_not_crash_when_child_throws) {
-  EXPECT_NO_THROW({ CommandRunner::run(g_resourcesPath + "throw.sh", ""); });
+  EXPECT_ERROR(CommandRunner::run(g_resourcesPath + "throw.sh", ""));
+  EXPECT_ERROR_MESSAGE(CommandRunner::run(g_resourcesPath + "throw.sh", ""), "Failed to successfully run the command \"/src/mesos-command-modules/tests/scripts/throw.sh\", it failed with status 1");
+}
+
+TEST(CommandRunnerTest, should_not_return_error_when_script_works) {
+  EXPECT_SOME(CommandRunner::run(g_resourcesPath + "ok.sh", ""));
 }
 
 TEST(CommandRunnerTest, should_not_crash_when_executing_unexisting_command) {

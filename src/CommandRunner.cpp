@@ -211,7 +211,11 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
       break;
     }
     if (rc > 0 && (WIFEXITED(status) || WIFSIGNALED(status))) {
-      break;
+      if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+        return Error("Failed to successfully run the command \"" + command + "\", it failed with status "+ std::to_string(WEXITSTATUS(status)));
+      } else {
+        break;
+      }
     }
     tick++;
   }
