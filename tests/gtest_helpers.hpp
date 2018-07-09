@@ -20,6 +20,6 @@
 
 #define EXPECT_ERROR_MESSAGE(actual, expectedMessage)                    \
   EXPECT_TRUE(actual.isError());                                         \
-  EXPECT_EQ(actual.error(), expectedMessage);
+  EXPECT_TRUE(std::regex_match(actual.error(), expectedMessage));
 
 #endif
