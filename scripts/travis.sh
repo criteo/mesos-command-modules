@@ -3,7 +3,7 @@
 set +e
 set +x
 
-cd mesos-command-modules
+cd src/mesos-command-modules
 
 mkdir build
 cd build
