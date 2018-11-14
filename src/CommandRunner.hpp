@@ -29,7 +29,7 @@ namespace CommandRunner {
  * @return The output of the command retrieved from the temporary file.
  */
 Try<std::string> run(const std::string& command,
-                     const std::string& serializedInput, int timeout = 5,
+                     const std::string& serializedInput, int timeout = 40,
                      bool debug = false);
 }
 }
