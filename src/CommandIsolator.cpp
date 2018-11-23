@@ -1,6 +1,7 @@
 #include "CommandIsolator.hpp"
 #include "CommandRunner.hpp"
 #include "Helpers.hpp"
+#include "Logger.hpp"
 
 #include <process/dispatch.hpp>
 #include <process/process.hpp>
@@ -51,13 +52,17 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
     return None();
   }
 
-  LOG(INFO) << "prepare: calling command \"" << m_prepareCommand << "\"";
+  logging::Metadata metadata = {
+    containerId.value(),
+    "prepare"
+  };
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
   inputsJson.values["container_config"] = JSON::protobuf(containerConfig);
-  Try<string> output = CommandRunner::run(
-      m_prepareCommand, stringify(inputsJson), TIMEOUT_SECONDS, m_isDebugMode);
+
+  Try<string> output = CommandRunner(m_isDebugMode, metadata)
+    .run(m_prepareCommand, stringify(inputsJson), TIMEOUT_SECONDS);
 
   if (output.isError()) {
     return Failure(output.error());
@@ -83,13 +88,13 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
     return Nothing();
   }
 
-  LOG(INFO) << "cleanup: calling command \"" << m_cleanupCommand << "\"";
+  logging::Metadata metadata = {containerId.value(), "cleanup"};
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
-  Try<string> output = CommandRunner::run(
-      m_cleanupCommand, stringify(inputsJson), TIMEOUT_SECONDS, m_isDebugMode);
+  Try<string> output = CommandRunner(m_isDebugMode, metadata)
+    .run(m_cleanupCommand, stringify(inputsJson), TIMEOUT_SECONDS);
 
   if (output.isError()) {
     return Failure(output.error());

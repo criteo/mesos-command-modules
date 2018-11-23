@@ -5,6 +5,7 @@
 
 #include <stout/gtest.hpp>
 #include <regex>
+#include <memory>
 
 using std::string;
 
@@ -12,50 +13,71 @@ using namespace criteo::mesos;
 
 extern string g_resourcesPath;
 
-TEST(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
+class CommandRunnerTest : public ::testing::Test {
+public:
+  virtual ~CommandRunnerTest() {}
+
+  void SetUp() {
+    m_metadata = createMetada();
+    m_commandRunner.reset(new CommandRunner(false, m_metadata));
+  }
+
+  static logging::Metadata createMetada() {
+      logging::Metadata m{"ABC-DEF-GHI", "method"};
+      return m;
+  }
+
+  logging::Metadata m_metadata;
+  std::unique_ptr<CommandRunner> m_commandRunner;
+};
+
+TEST_F(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
   Try<string> output =
-      CommandRunner::run(g_resourcesPath + "pipe_input.sh", "HELLO", 10, true);
+      m_commandRunner->run(g_resourcesPath + "pipe_input.sh", "HELLO", 10);
   EXPECT_EQ(output.get(), "HELLO > output");
 }
 
-TEST(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
+TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
+  logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner::run(g_resourcesPath + "infinite_loop.sh", "", 1);
+      CommandRunner(false, metadata).run(g_resourcesPath + "infinite_loop.sh", "", 1);
   EXPECT_ERROR(output);
   TEST_TIMEOUT_FAIL_END(2000)
 }
 
-TEST(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
+TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
+  logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner::run(g_resourcesPath + "force_kill.sh", "", 1);
+      CommandRunner(false, metadata).run(g_resourcesPath + "force_kill.sh", "", 1);
   EXPECT_ERROR(output);
   TEST_TIMEOUT_FAIL_END(3000)
 }
 
-TEST(CommandRunnerTest, should_not_crash_when_child_throws) {
-  EXPECT_ERROR(CommandRunner::run(g_resourcesPath + "throw.sh", ""));
-  EXPECT_ERROR_MESSAGE(CommandRunner::run(g_resourcesPath + "throw.sh", ""), std::regex("Failed to successfully run the command .*throw.sh\", it failed with status 1"));
+TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
+  EXPECT_ERROR(m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10));
+  std::cout << m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10).error();
+  EXPECT_ERROR_MESSAGE(m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10), std::regex("Failed to successfully run the command .*throw.sh\", it failed with status 1"));
 }
 
-TEST(CommandRunnerTest, should_not_return_error_when_script_works) {
-  EXPECT_SOME(CommandRunner::run(g_resourcesPath + "ok.sh", ""));
+TEST_F(CommandRunnerTest, should_not_return_error_when_script_works) {
+  EXPECT_SOME(m_commandRunner->run(g_resourcesPath + "ok.sh", "", 10));
 }
 
-TEST(CommandRunnerTest, should_not_crash_when_executing_unexisting_command) {
-  EXPECT_NO_THROW({ CommandRunner::run("blablabla", ""); });
+TEST_F(CommandRunnerTest, should_not_crash_when_executing_unexisting_command) {
+  EXPECT_NO_THROW({ m_commandRunner->run("blablabla", "", 10); });
 }
 
-TEST(CommandRunnerTest,
+TEST_F(CommandRunnerTest,
      should_return_an_error_when_executing_unexisting_command) {
-  Try<string> output = CommandRunner::run("blablabla", "");
+  Try<string> output = m_commandRunner->run("blablabla", "", 10);
   EXPECT_ERROR(output);
 }
 
-TEST(CommandRunnerTest,
+TEST_F(CommandRunnerTest,
      should_return_an_error_when_executing_unexecutable_file) {
   Try<string> output =
-      CommandRunner::run(g_resourcesPath + "unexecutable.sh", "");
+      m_commandRunner->run(g_resourcesPath + "unexecutable.sh", "", 10);
   EXPECT_ERROR(output);
 }

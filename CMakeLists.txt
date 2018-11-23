@@ -60,6 +60,7 @@ set(MODULES_HEADERS
   ${CMAKE_SOURCE_DIR}/src/CommandIsolator.hpp
   ${CMAKE_SOURCE_DIR}/src/CommandRunner.hpp
   ${CMAKE_SOURCE_DIR}/src/Helpers.hpp
+  ${CMAKE_SOURCE_DIR}/src/Logger.hpp
   ${CMAKE_SOURCE_DIR}/src/ModulesFactory.hpp
 )
 
