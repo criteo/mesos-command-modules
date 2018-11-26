@@ -6,8 +6,14 @@
 namespace criteo {
 namespace mesos {
 
+// This is the default value of the timeout if the user does not override it
+// in configuration.
 const unsigned long DEFAULT_COMMAND_TIMEOUT = 30;
 
+/**
+ * @brief The Command class represents a command, i.e., a command to be run and a timeout before
+ * the command is terminated.
+ */
 class Command {
 public:
   Command(const std::string& command): m_cmd(command), m_timeout(DEFAULT_COMMAND_TIMEOUT) {}
