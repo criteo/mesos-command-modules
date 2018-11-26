@@ -21,7 +21,7 @@ const string PREPARE_KEY = "isolator_prepare";
 const string CLEANUP_KEY = "isolator_cleanup";
 
 // Additional parameters.
-const string DEBUG_KEY = "debug"; // enable debug mode.
+const string DEBUG_KEY = "debug";  // enable debug mode.
 
 string getOrEmpty(const map<string, string>& kv, const string& key) {
   string command;
@@ -40,36 +40,41 @@ map<string, string> toMap(const ::mesos::Parameters& parameters) {
   return kv;
 }
 
-Option<Command> extractCommand(const map<string, string>& kv, const std::string& commandKey) {
-    string cmd = getOrEmpty(kv, commandKey + "_command");
-    if (!cmd.empty()) {
-        Command command = Command(cmd);
+Option<Command> extractCommand(const map<string, string>& kv,
+                               const std::string& commandKey) {
+  string cmd = getOrEmpty(kv, commandKey + "_command");
+  if (!cmd.empty()) {
+    Command command = Command(cmd);
 
-        string timeoutStr = getOrEmpty(kv, commandKey + "_timeout");
-        if (timeoutStr.empty()) {
-            return Option<Command>(command);
-        }
-        unsigned long timeout = stoul(timeoutStr);
-        command.setTimeout(timeout);
-        return Option<Command>(command);
+    string timeoutStr = getOrEmpty(kv, commandKey + "_timeout");
+    if (timeoutStr.empty()) {
+      return Option<Command>(command);
     }
-    return Option<Command>();
+    unsigned long timeout = stoul(timeoutStr);
+    command.setTimeout(timeout);
+    return Option<Command>(command);
+  }
+  return Option<Command>();
 }
 
-Configuration ConfigurationParser::parse(const ::mesos::Parameters& parameters) {
-    map<string, string> p = toMap(parameters);
-    Configuration configuration;
+Configuration ConfigurationParser::parse(
+    const ::mesos::Parameters& parameters) {
+  map<string, string> p = toMap(parameters);
+  Configuration configuration;
 
-    configuration.slaveExecutorEnvironmentDecoratorCommand = extractCommand(p, SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY);
-    configuration.slaveRemoveExecutorHookCommand = extractCommand(p, SLAVE_REMOVE_EXECUTOR_KEY);
-    configuration.slaveRunTaskLabelDecoratorCommand = extractCommand(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
+  configuration.slaveExecutorEnvironmentDecoratorCommand =
+      extractCommand(p, SLAVE_EXECUTOR_ENVIRONMENT_DECORATOR_KEY);
+  configuration.slaveRemoveExecutorHookCommand =
+      extractCommand(p, SLAVE_REMOVE_EXECUTOR_KEY);
+  configuration.slaveRunTaskLabelDecoratorCommand =
+      extractCommand(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
 
-    configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
-    configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
+  configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
+  configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
 
-    configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
-    return configuration;
+  configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
+  return configuration;
 }
 
-}
-}
+}  // namespace mesos
+}  // namespace criteo

@@ -36,11 +36,10 @@ class CommandHook : public ::mesos::Hook {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  explicit CommandHook(
-    const Option<Command> &runTaskLabelCommand,
-    const Option<Command> &executorEnvironmentCommand,
-    const Option<Command> &removeExecutorCommand,
-    bool isDebugMode = false);
+  explicit CommandHook(const Option<Command> &runTaskLabelCommand,
+                       const Option<Command> &executorEnvironmentCommand,
+                       const Option<Command> &removeExecutorCommand,
+                       bool isDebugMode = false);
 
   virtual ~CommandHook() {}
 
@@ -105,7 +104,7 @@ class CommandHook : public ::mesos::Hook {
   Option<Command> m_removeExecutorCommand;
   bool m_isDebugMode;
 };
-}
-}
+}  // namespace mesos
+}  // namespace criteo
 
 #endif

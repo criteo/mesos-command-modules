@@ -41,25 +41,25 @@ TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "infinite_loop.sh", 1), "");
+      CommandRunner(false, metadata).run(Command(g_resourcesPath + "infinite_loop.sh", 2), "");
   EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(2000)
+  TEST_TIMEOUT_FAIL_END(4000)
 }
 
 TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "force_kill.sh", 1), "");
+      CommandRunner(false, metadata).run(Command(g_resourcesPath + "force_kill.sh", 2), "");
   EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(3000)
+  TEST_TIMEOUT_FAIL_END(40000)
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
   EXPECT_ERROR(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""));
   std::cout << m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), "").error();
   EXPECT_ERROR_MESSAGE(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""),
-                       std::regex("Failed to successfully run the command .*throw.sh\", it failed with status 1"));
+                       std::regex("Command \".*throw.sh\" exited with return code 1."));
 }
 
 TEST_F(CommandRunnerTest, should_not_return_error_when_script_works) {

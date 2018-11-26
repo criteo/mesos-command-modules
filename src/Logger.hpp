@@ -3,18 +3,19 @@
 
 #include <string>
 
-#define TASK_LOG(severity, metadata) \
-    LOG(severity) << "[TASK=" << metadata.taskId << ", METHOD=" << metadata.method << "] "
+#define TASK_LOG(severity, metadata)           \
+  LOG(severity) << "[TASK=" << metadata.taskId \
+                << ", METHOD=" << metadata.method << "] "
 
 namespace criteo {
 namespace mesos {
 namespace logging {
 struct Metadata {
-    std::string taskId;
-    std::string method;
+  std::string taskId;
+  std::string method;
 };
-}
-}
-}
+}  // namespace logging
+}  // namespace mesos
+}  // namespace criteo
 
 #endif

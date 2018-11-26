@@ -8,16 +8,14 @@ namespace mesos {
 
 using std::string;
 
-CommandHook::CommandHook(
-   const Option<Command>& runTaskLabelCommand,
-   const Option<Command>& executorEnvironmentCommand,
-   const Option<Command>& removeExecutorCommand,
-   bool isDebugMode)
+CommandHook::CommandHook(const Option<Command>& runTaskLabelCommand,
+                         const Option<Command>& executorEnvironmentCommand,
+                         const Option<Command>& removeExecutorCommand,
+                         bool isDebugMode)
     : m_runTaskLabelCommand(runTaskLabelCommand),
       m_executorEnvironmentCommand(executorEnvironmentCommand),
       m_removeExecutorCommand(removeExecutorCommand),
       m_isDebugMode(isDebugMode) {}
-
 
 Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
     const ::mesos::TaskInfo& taskInfo,
@@ -28,7 +26,8 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
     return None();
   }
 
-  logging::Metadata metadata = {executorInfo.executor_id().value(), "slaveRunTaskLabelDecorator"};
+  logging::Metadata metadata = {executorInfo.executor_id().value(),
+                                "slaveRunTaskLabelDecorator"};
 
   JSON::Object inputsJson;
   inputsJson.values["task_info"] = JSON::protobuf(taskInfo);
@@ -46,17 +45,14 @@ Result<::mesos::Labels> CommandHook::slaveRunTaskLabelDecorator(
   return jsonToProtobuf<::mesos::Labels>(output.get());
 }
 
-
 Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
     const ::mesos::ExecutorInfo& executorInfo) {
   if (m_executorEnvironmentCommand.isNone()) {
     return None();
   }
 
-  logging::Metadata metadata = {
-    executorInfo.executor_id().value(),
-    "slaveExecutorEnvironmentDecorator"
-  };
+  logging::Metadata metadata = {executorInfo.executor_id().value(),
+                                "slaveExecutorEnvironmentDecorator"};
 
   JSON::Object inputsJson;
   inputsJson.values["executor_info"] = JSON::protobuf(executorInfo);
@@ -71,16 +67,13 @@ Result<::mesos::Environment> CommandHook::slaveExecutorEnvironmentDecorator(
   return jsonToProtobuf<::mesos::Environment>(output.get());
 }
 
-
 Try<Nothing> CommandHook::slaveRemoveExecutorHook(
     const ::mesos::FrameworkInfo& frameworkInfo,
     const ::mesos::ExecutorInfo& executorInfo) {
   if (m_removeExecutorCommand.isNone()) return Nothing();
 
-  logging::Metadata metadata = {
-    executorInfo.executor_id().value(),
-    "slaveExecutorEnvironmentDecorator"
-  };
+  logging::Metadata metadata = {executorInfo.executor_id().value(),
+                                "slaveExecutorEnvironmentDecorator"};
 
   JSON::Object inputsJson;
   inputsJson.values["framework_info"] = JSON::protobuf(frameworkInfo);
@@ -96,5 +89,5 @@ Try<Nothing> CommandHook::slaveRemoveExecutorHook(
   return Nothing();
 }
 
-}
-}
+}  // namespace mesos
+}  // namespace criteo
