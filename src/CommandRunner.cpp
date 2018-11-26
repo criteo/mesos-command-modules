@@ -167,7 +167,7 @@ pid_t popen2(const std::string& command, const std::vector<std::string>& args,
  */
 Try<Nothing> runCommandWithTimeout(const std::string& command,
                                    const std::vector<std::string>& args,
-                                   unsigned int timeout,
+                                   unsigned long timeout,
                                    const logging::Metadata& loggingMetadata) {
   int status;
   unsigned int tick = 0;
@@ -257,9 +257,8 @@ CommandRunner::CommandRunner(bool debug, const logging::Metadata& loggingMetadat
  * @return The output of the command read from the output file.
  */
 Try<std::string> CommandRunner::run(
-  const std::string& command,
-  const std::string& input,
-  unsigned int timeout) {
+  const Command& command,
+  const std::string& input) {
 
   try {
     TemporaryFile inputFile;
@@ -267,17 +266,17 @@ Try<std::string> CommandRunner::run(
     inputFile.write(input);
 
     if (m_debug) {
-      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \"" << command << "\" "
+      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \"" << command.command() << "\" (" << command.timeout() << "s) "
                 << inputFile.filepath() << " " << outputFile.filepath();
     } else {
-      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \"" << command << "\"";
+      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \"" << command.command() << "\" (" << command.timeout() << "s)";
     }
 
     vector<string> args;
     args.push_back(inputFile.filepath());
     args.push_back(outputFile.filepath());
 
-    Try<Nothing> result = runCommandWithTimeout(command, args, timeout, m_loggingMetadata);
+    Try<Nothing> result = runCommandWithTimeout(command.command(), args, command.timeout(), m_loggingMetadata);
     if (result.isError()) {
       throw std::runtime_error(result.error());
     }

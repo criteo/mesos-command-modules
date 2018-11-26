@@ -5,6 +5,7 @@
 
 #include <stout/try.hpp>
 
+#include "Command.hpp"
 #include "Logger.hpp"
 
 namespace criteo {
@@ -39,9 +40,8 @@ public:
      * @return The output of the command retrieved from the temporary file.
      */
     Try<std::string> run(
-        const std::string& command,
-        const std::string& serializedInput,
-        unsigned int timeout);
+        const Command& command,
+        const std::string& serializedInput);
 
 private:
     bool m_debug;

@@ -33,7 +33,7 @@ public:
 
 TEST_F(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
   Try<string> output =
-      m_commandRunner->run(g_resourcesPath + "pipe_input.sh", "HELLO", 10);
+      m_commandRunner->run(Command(g_resourcesPath + "pipe_input.sh", 10), "HELLO");
   EXPECT_EQ(output.get(), "HELLO > output");
 }
 
@@ -41,7 +41,7 @@ TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner(false, metadata).run(g_resourcesPath + "infinite_loop.sh", "", 1);
+      CommandRunner(false, metadata).run(Command(g_resourcesPath + "infinite_loop.sh", 1), "");
   EXPECT_ERROR(output);
   TEST_TIMEOUT_FAIL_END(2000)
 }
@@ -50,34 +50,35 @@ TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner(false, metadata).run(g_resourcesPath + "force_kill.sh", "", 1);
+      CommandRunner(false, metadata).run(Command(g_resourcesPath + "force_kill.sh", 1), "");
   EXPECT_ERROR(output);
   TEST_TIMEOUT_FAIL_END(3000)
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
-  EXPECT_ERROR(m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10));
-  std::cout << m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10).error();
-  EXPECT_ERROR_MESSAGE(m_commandRunner->run(g_resourcesPath + "throw.sh", "", 10), std::regex("Failed to successfully run the command .*throw.sh\", it failed with status 1"));
+  EXPECT_ERROR(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""));
+  std::cout << m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), "").error();
+  EXPECT_ERROR_MESSAGE(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""),
+                       std::regex("Failed to successfully run the command .*throw.sh\", it failed with status 1"));
 }
 
 TEST_F(CommandRunnerTest, should_not_return_error_when_script_works) {
-  EXPECT_SOME(m_commandRunner->run(g_resourcesPath + "ok.sh", "", 10));
+  EXPECT_SOME(m_commandRunner->run(Command(g_resourcesPath + "ok.sh", 10), ""));
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_executing_unexisting_command) {
-  EXPECT_NO_THROW({ m_commandRunner->run("blablabla", "", 10); });
+  EXPECT_NO_THROW({ m_commandRunner->run(Command("blablabla", 10), ""); });
 }
 
 TEST_F(CommandRunnerTest,
      should_return_an_error_when_executing_unexisting_command) {
-  Try<string> output = m_commandRunner->run("blablabla", "", 10);
+  Try<string> output = m_commandRunner->run(Command("blablabla", 10), "");
   EXPECT_ERROR(output);
 }
 
 TEST_F(CommandRunnerTest,
      should_return_an_error_when_executing_unexecutable_file) {
   Try<string> output =
-      m_commandRunner->run(g_resourcesPath + "unexecutable.sh", "", 10);
+      m_commandRunner->run(Command(g_resourcesPath + "unexecutable.sh", 10), "");
   EXPECT_ERROR(output);
 }

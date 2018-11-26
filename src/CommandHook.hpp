@@ -3,8 +3,12 @@
 
 #include <string>
 
+#include <Command.hpp>
+
 #include <mesos/hook.hpp>
 #include <mesos/module/hook.hpp>
+
+#include <stout/option.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -32,10 +36,12 @@ class CommandHook : public ::mesos::Hook {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  CommandHook(const std::string &runTaskLabelCommand,
-              const std::string &executorEnvironmentCommand,
-              const std::string &removeExecutorCommand,
-              bool isDebugMode = false);
+  explicit CommandHook(
+    const Option<Command> &runTaskLabelCommand,
+    const Option<Command> &executorEnvironmentCommand,
+    const Option<Command> &removeExecutorCommand,
+    bool isDebugMode = false);
+
   virtual ~CommandHook() {}
 
   /*
@@ -81,22 +87,22 @@ class CommandHook : public ::mesos::Hook {
       const ::mesos::FrameworkInfo &frameworkInfo,
       const ::mesos::ExecutorInfo &executorInfo) override;
 
-  inline const std::string &runTaskLabelCommand() const {
+  inline const Option<Command> &runTaskLabelCommand() const {
     return m_runTaskLabelCommand;
   }
 
-  inline const std::string &executorEnvironmentCommand() const {
+  inline const Option<Command> &executorEnvironmentCommand() const {
     return m_executorEnvironmentCommand;
   }
 
-  inline const std::string &removeExecutorCommand() const {
+  inline const Option<Command> &removeExecutorCommand() const {
     return m_removeExecutorCommand;
   }
 
  private:
-  std::string m_runTaskLabelCommand;
-  std::string m_executorEnvironmentCommand;
-  std::string m_removeExecutorCommand;
+  Option<Command> m_runTaskLabelCommand;
+  Option<Command> m_executorEnvironmentCommand;
+  Option<Command> m_removeExecutorCommand;
   bool m_isDebugMode;
 };
 }

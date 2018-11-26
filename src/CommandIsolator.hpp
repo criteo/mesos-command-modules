@@ -3,8 +3,12 @@
 
 #include <string>
 
+#include "Command.hpp"
+
 #include <mesos/module/isolator.hpp>
 #include <mesos/slave/isolator.hpp>
+
+#include <stout/option.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -24,7 +28,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
  public:
   /*
    * Constructor
-   * Each argument can be empty. In that case the corresponding
+   * In the case a command is empty, the corresponding
    * isolation primitive will not be treated.
    *
    * @param prepareCommand The command to execute when `prepare` event is
@@ -34,8 +38,10 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  CommandIsolator(const std::string& prepareCommand,
-                  const std::string& cleanupCommand, bool isDebugMode = false);
+  explicit CommandIsolator(
+    const Option<Command>& prepareCommand,
+    const Option<Command>& cleanupCommand,
+    bool isDebugMode = false);
 
   /**
    * Destructor
@@ -69,12 +75,12 @@ class CommandIsolator : public ::mesos::slave::Isolator {
   /**
    * Get prepare command.
    */
-  const std::string& prepareCommand() const;
+  const Option<Command>& prepareCommand() const;
 
   /**
    * Get cleanup command.
    */
-  const std::string& cleanupCommand() const;
+  const Option<Command>& cleanupCommand() const;
 
  private:
   CommandIsolatorProcess* m_process;

@@ -17,38 +17,39 @@ using ::mesos::slave::ContainerLaunchInfo;
 
 using process::Failure;
 
-const int TIMEOUT_SECONDS = 10;
-
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
-  CommandIsolatorProcess(const string& prepareCommand,
-                         const string& cleanupCommand, bool isDebugMode);
+  CommandIsolatorProcess(
+    const Option<Command>& prepareCommand,
+    const Option<Command>& cleanupCommand,
+    bool isDebugMode);
 
   virtual process::Future<Option<ContainerLaunchInfo>> prepare(
       const ContainerID& containerId, const ContainerConfig& containerConfig);
 
   virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
 
-  inline const std::string& prepareCommand() const { return m_prepareCommand; }
+  inline const Option<Command>& prepareCommand() const { return m_prepareCommand; }
 
-  inline const std::string& cleanupCommand() const { return m_cleanupCommand; }
+  inline const Option<Command>& cleanupCommand() const { return m_cleanupCommand; }
 
  private:
-  std::string m_prepareCommand;
-  std::string m_cleanupCommand;
+  Option<Command> m_prepareCommand;
+  Option<Command> m_cleanupCommand;
   bool m_isDebugMode;
 };
 
-CommandIsolatorProcess::CommandIsolatorProcess(const string& prepareCommand,
-                                               const string& cleanupCommand,
+CommandIsolatorProcess::CommandIsolatorProcess(const Option<Command>& prepareCommand,
+                                               const Option<Command>& cleanupCommand,
                                                bool isDebugMode)
     : m_prepareCommand(prepareCommand),
       m_cleanupCommand(cleanupCommand),
       m_isDebugMode(isDebugMode) {}
 
+
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
-  if (m_prepareCommand.empty()) {
+  if (m_prepareCommand.isNone()) {
     return None();
   }
 
@@ -62,7 +63,7 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
   inputsJson.values["container_config"] = JSON::protobuf(containerConfig);
 
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
-    .run(m_prepareCommand, stringify(inputsJson), TIMEOUT_SECONDS);
+    .run(m_prepareCommand.get(), stringify(inputsJson));
 
   if (output.isError()) {
     return Failure(output.error());
@@ -82,9 +83,10 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
   return containerLaunchInfo.get();
 }
 
+
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
     const ContainerID& containerId) {
-  if (m_cleanupCommand.empty()) {
+  if (m_cleanupCommand.isNone()) {
     return Nothing();
   }
 
@@ -94,7 +96,7 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
-    .run(m_cleanupCommand, stringify(inputsJson), TIMEOUT_SECONDS);
+    .run(m_cleanupCommand.get(), stringify(inputsJson));
 
   if (output.isError()) {
     return Failure(output.error());
@@ -103,12 +105,14 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   return Nothing();
 }
 
-CommandIsolator::CommandIsolator(const string& prepareCommand,
-                                 const string& cleanupCommand, bool isDebugMode)
+
+CommandIsolator::CommandIsolator(const Option<Command>& prepareCommand,
+                                 const Option<Command>& cleanupCommand, bool isDebugMode)
     : m_process(new CommandIsolatorProcess(prepareCommand, cleanupCommand,
                                            isDebugMode)) {
   spawn(m_process);
 }
+
 
 CommandIsolator::~CommandIsolator() {
   if (m_process != nullptr) {
@@ -118,23 +122,27 @@ CommandIsolator::~CommandIsolator() {
   }
 }
 
+
 process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
   return dispatch(m_process, &CommandIsolatorProcess::prepare, containerId,
                   containerConfig);
 }
 
+
 process::Future<Nothing> CommandIsolator::cleanup(
     const ContainerID& containerId) {
   return dispatch(m_process, &CommandIsolatorProcess::cleanup, containerId);
 }
 
-const string& CommandIsolator::prepareCommand() const {
+
+const Option<Command>& CommandIsolator::prepareCommand() const {
   CHECK_NOTNULL(m_process);
   return m_process->prepareCommand();
 }
 
-const string& CommandIsolator::cleanupCommand() const {
+
+const Option<Command>& CommandIsolator::cleanupCommand() const {
   CHECK_NOTNULL(m_process);
   return m_process->cleanupCommand();
 }
