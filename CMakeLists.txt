@@ -52,14 +52,18 @@ set(MODULES_SOURCES
   ${CMAKE_SOURCE_DIR}/src/CommandHook.cpp
   ${CMAKE_SOURCE_DIR}/src/CommandIsolator.cpp
   ${CMAKE_SOURCE_DIR}/src/CommandRunner.cpp
+  ${CMAKE_SOURCE_DIR}/src/ConfigurationParser.cpp
   ${CMAKE_SOURCE_DIR}/src/ModulesFactory.cpp
 )
 
 set(MODULES_HEADERS
+  ${CMAKE_SOURCE_DIR}/src/Command.hpp
   ${CMAKE_SOURCE_DIR}/src/CommandHook.hpp
   ${CMAKE_SOURCE_DIR}/src/CommandIsolator.hpp
   ${CMAKE_SOURCE_DIR}/src/CommandRunner.hpp
+  ${CMAKE_SOURCE_DIR}/src/ConfigurationParser.hpp
   ${CMAKE_SOURCE_DIR}/src/Helpers.hpp
+  ${CMAKE_SOURCE_DIR}/src/Logger.hpp
   ${CMAKE_SOURCE_DIR}/src/ModulesFactory.hpp
 )
 
@@ -73,6 +77,7 @@ set(TEST_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/CommandRunnerTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/CommandHookTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/CommandIsolatorTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/ConfigurationParserTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/ModulesFactoryTest.cpp
 )
 

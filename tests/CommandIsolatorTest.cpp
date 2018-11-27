@@ -17,8 +17,8 @@ class CommandIsolatorTest : public ::testing::Test {
 
  public:
   void SetUp() {
-    isolator.reset(new CommandIsolator(g_resourcesPath + "prepare.sh",
-                                       g_resourcesPath + "cleanup.sh"));
+    isolator.reset(new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+                                       Command(g_resourcesPath + "cleanup.sh")));
     containerId.set_value("container_id");
 
     containerConfig.set_rootfs("/isolated_fs");
@@ -51,7 +51,7 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator("unexisting.sh", "unexisting.sh"));
+    isolator.reset(new CommandIsolator(Command("unexisting.sh"), Command("unexisting.sh")));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -73,7 +73,7 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(
-        new CommandIsolator(g_resourcesPath + "prepare_malformed.sh", ""));
+        new CommandIsolator(Command(g_resourcesPath + "prepare_malformed.sh"), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -88,7 +88,7 @@ class EmptyCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator("", ""));
+    isolator.reset(new CommandIsolator(None(), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -112,7 +112,7 @@ class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
-        g_resourcesPath + "prepare_incorrect_protobuf.sh", ""));
+        Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };

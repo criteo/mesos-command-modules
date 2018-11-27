@@ -16,9 +16,9 @@ class CommandHookTest : public ::testing::Test {
  public:
   void SetUp() {
     hook.reset(new CommandHook(
-        g_resourcesPath + "slaveRunTaskLabelDecorator.sh",
-        g_resourcesPath + "slaveExecutorEnvironmentDecorator.sh",
-        g_resourcesPath + "slaveRemoveExecutorHook.sh"));
+        Command(g_resourcesPath + "slaveRunTaskLabelDecorator.sh"),
+        Command(g_resourcesPath + "slaveExecutorEnvironmentDecorator.sh"),
+        Command(g_resourcesPath + "slaveRemoveExecutorHook.sh")));
     taskInfo.set_name("test_task");
     taskInfo.mutable_task_id()->set_value("1");
     taskInfo.mutable_slave_id()->set_value("2");
@@ -80,7 +80,7 @@ class UnexistingCommandHookTest : public CommandHookTest {
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(
-        new CommandHook("unexisting.sh", "unexisting.sh", "unexisting.sh"));
+        new CommandHook(Command("unexisting.sh"), Command("unexisting.sh"), Command("unexisting.sh")));
   }
   std::unique_ptr<CommandHook> hook;
 };
@@ -105,9 +105,9 @@ class MalformedCommandHookTest : public CommandHookTest {
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-        g_resourcesPath + "slaveRunTaskLabelDecorator_malformed.sh",
-        g_resourcesPath + "slaveExecutorEnvironmentDecorator_malformed.sh",
-        g_resourcesPath + "slaveRemoveExecutorHook_malformed.sh"));
+        Command(g_resourcesPath + "slaveRunTaskLabelDecorator_malformed.sh"),
+        Command(g_resourcesPath + "slaveExecutorEnvironmentDecorator_malformed.sh"),
+        Command(g_resourcesPath + "slaveRemoveExecutorHook_malformed.sh")));
   }
   std::unique_ptr<CommandHook> hook;
 };
@@ -131,7 +131,7 @@ class EmptyCommandHookTest : public CommandHookTest {
  public:
   void SetUp() {
     CommandHookTest::SetUp();
-    hook.reset(new CommandHook("", "", ""));
+    hook.reset(new CommandHook(None(), None(), None()));
   }
   std::unique_ptr<CommandHook> hook;
 };
@@ -155,10 +155,10 @@ class IncorrectProtobufCommandHookTest : public CommandHookTest {
   void SetUp() {
     CommandHookTest::SetUp();
     hook.reset(new CommandHook(
-        g_resourcesPath + "slaveRunTaskLabelDecorator_incorrect_protobuf.sh",
-        g_resourcesPath +
-            "slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh",
-        g_resourcesPath + "slaveRemoveExecutorHook_incorrect_protobuf.sh"));
+        Command(g_resourcesPath + "slaveRunTaskLabelDecorator_incorrect_protobuf.sh"),
+        Command(g_resourcesPath +
+            "slaveExecutorEnvironmentDecorator_incorrect_protobuf.sh"),
+        Command(g_resourcesPath + "slaveRemoveExecutorHook_incorrect_protobuf.sh")));
   }
   std::unique_ptr<CommandHook> hook;
 };

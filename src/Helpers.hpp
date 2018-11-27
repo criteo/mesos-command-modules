@@ -14,9 +14,7 @@ Result<Proto> jsonToProtobuf(const std::string& output) {
 
   auto outputJsonTry = JSON::parse(output);
   if (outputJsonTry.isError()) {
-    LOG(WARNING) << "Error when parsing string to JSON:"
-                 << outputJsonTry.error();
-    return Error("Malformed JSON");
+    return Error("Malformed JSON. " + outputJsonTry.error());
   }
 
   auto outputJson = outputJsonTry.get();
@@ -26,8 +24,7 @@ Result<Proto> jsonToProtobuf(const std::string& output) {
 
   auto proto = ::protobuf::parse<Proto>(outputJson);
   if (proto.isError()) {
-    LOG(WARNING) << "Error while converting JSON to protobuf: "
-                 << proto.error();
+    return Error("Error while converting JSON to protobuf. " + proto.error());
   }
   return proto;
 }
