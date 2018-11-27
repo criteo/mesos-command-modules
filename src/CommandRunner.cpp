@@ -235,13 +235,13 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
         exitCode = WEXITSTATUS(status);
         TASK_LOG(ERROR, loggingMetadata)
             << "Failed to successfully run the command \"" << command
-            << "\", it failed with status " + std::to_string(exitCode);
+            << "\", it failed with status " + std::to_string(exitCode) << ".";
       }
       if (WIFSIGNALED(status) && WTERMSIG(status) != 0) {
         signalCode = WTERMSIG(status);
         TASK_LOG(ERROR, loggingMetadata)
             << "Failed to successfully run the command \"" << command
-            << "\", it exited with signal " + std::to_string(signalCode);
+            << "\", it exited with signal " + std::to_string(signalCode) << ".";
       }
       return true;
     }
@@ -311,18 +311,19 @@ CommandRunner::CommandRunner(bool debug,
  *
  * @return The output of the command read from the output file.
  */
-Try<std::string> CommandRunner::run(const Command& command,
-                                    const std::string& input) {
+Try<string> CommandRunner::run(const Command& command,
+                               const std::string& input) {
   try {
-    TemporaryFile inputFile;
-    TemporaryFile outputFile;
-    inputFile.write(input);
+    TemporaryFile stdinFile;
+    TemporaryFile stdoutFile;
+    TemporaryFile stderrFile;
+    stdinFile.write(input);
 
     if (m_debug) {
       TASK_LOG(INFO, m_loggingMetadata)
           << "Calling command: \"" << command.command() << "\" ("
-          << command.timeout() << "s) " << inputFile.filepath() << " "
-          << outputFile.filepath();
+          << command.timeout() << "s) " << stdinFile.filepath() << " "
+          << stdoutFile.filepath() << " " << stderrFile.filepath();
     } else {
       TASK_LOG(INFO, m_loggingMetadata)
           << "Calling command: \"" << command.command() << "\" ("
@@ -330,16 +331,21 @@ Try<std::string> CommandRunner::run(const Command& command,
     }
 
     vector<string> args;
-    args.push_back(inputFile.filepath());
-    args.push_back(outputFile.filepath());
+    args.push_back(stdinFile.filepath());
+    args.push_back(stdoutFile.filepath());
+    args.push_back(stderrFile.filepath());
 
     Try<Nothing> result = runCommandWithTimeout(
         command.command(), args, command.timeout(), m_loggingMetadata);
     if (result.isError()) {
+      string stderr = stderrFile.readAll();
+      if (!stderr.empty()) {
+        throw std::runtime_error(result.error() + " Cause: " + stderr);
+      }
       throw std::runtime_error(result.error());
     }
 
-    return outputFile.readAll();
+    return stdoutFile.readAll();
   } catch (const std::runtime_error& e) {
     if (m_debug) {
       return Error("[DEBUG] " + string(e.what()) + ". Input was \"" + input +

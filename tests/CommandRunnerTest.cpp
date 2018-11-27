@@ -57,7 +57,6 @@ TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
   EXPECT_ERROR(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""));
-  std::cout << m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), "").error();
   EXPECT_ERROR_MESSAGE(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""),
                        std::regex("Command \".*throw.sh\" exited with return code 1."));
 }
@@ -81,4 +80,13 @@ TEST_F(CommandRunnerTest,
   Try<string> output =
       m_commandRunner->run(Command(g_resourcesPath + "unexecutable.sh", 10), "");
   EXPECT_ERROR(output);
+}
+
+TEST_F(CommandRunnerTest,
+     should_return_an_error_with_cause_from_command) {
+  Try<string> output =
+      m_commandRunner->run(Command(g_resourcesPath + "stderr.sh", 10), "");
+  EXPECT_ERROR(output);
+  EXPECT_ERROR_MESSAGE(output,
+                       std::regex("Command \".*stderr.sh\" exited with return code 1\\. Cause: This is the cause\\."));
 }
