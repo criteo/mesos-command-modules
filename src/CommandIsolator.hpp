@@ -38,10 +38,9 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  explicit CommandIsolator(
-    const Option<Command>& prepareCommand,
-    const Option<Command>& cleanupCommand,
-    bool isDebugMode = false);
+  explicit CommandIsolator(const Option<Command>& prepareCommand,
+                           const Option<Command>& cleanupCommand,
+                           bool isDebugMode = false);
 
   /**
    * Destructor
@@ -85,7 +84,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
  private:
   CommandIsolatorProcess* m_process;
 };
-}
-}
+}  // namespace mesos
+}  // namespace criteo
 
 #endif

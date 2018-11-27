@@ -1,8 +1,8 @@
 #ifndef CONFIGURATION_PARSER_HPP
 #define CONFIGURATION_PARSER_HPP
 
-#include <stout/option.hpp>
 #include <mesos/mesos.pb.h>
+#include <stout/option.hpp>
 
 #include "Command.hpp"
 
@@ -29,9 +29,8 @@ struct Configuration {
  * @brief The ConfigurationParser class parses the configuration KV provided by
  * Mesos and produces a configuration object.
  */
-class ConfigurationParser
-{
-public:
+class ConfigurationParser {
+ public:
   /**
    * @brief parse the configuration provided by the user.
    * @param parameters The parameters provided by Mesos.
@@ -39,7 +38,7 @@ public:
    */
   static Configuration parse(const ::mesos::Parameters& parameters);
 };
-}
-}
+}  // namespace mesos
+}  // namespace criteo
 
-#endif // CONFIGURATION_PARSER_HPP
+#endif  // CONFIGURATION_PARSER_HPP

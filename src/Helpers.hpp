@@ -28,7 +28,7 @@ Result<Proto> jsonToProtobuf(const std::string& output) {
   }
   return proto;
 }
-}
-}
+}  // namespace mesos
+}  // namespace criteo
 
 #endif

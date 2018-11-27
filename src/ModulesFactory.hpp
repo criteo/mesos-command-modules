@@ -11,7 +11,7 @@ namespace criteo {
 namespace mesos {
 ::mesos::Hook* createHook(const ::mesos::Parameters& parameters);
 ::mesos::slave::Isolator* createIsolator(const ::mesos::Parameters& parameters);
-}
-}
+}  // namespace mesos
+}  // namespace criteo
 
 #endif
