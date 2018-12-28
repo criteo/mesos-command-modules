@@ -235,13 +235,14 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
         exitCode = WEXITSTATUS(status);
         TASK_LOG(ERROR, loggingMetadata)
             << "Failed to successfully run the command \"" << command
-            << "\", it failed with status " + std::to_string(exitCode);
+            << "\", it failed with status " << std::to_string(exitCode) << ".";
       }
       if (WIFSIGNALED(status) && WTERMSIG(status) != 0) {
         signalCode = WTERMSIG(status);
         TASK_LOG(ERROR, loggingMetadata)
             << "Failed to successfully run the command \"" << command
-            << "\", it exited with signal " + std::to_string(signalCode);
+            << "\", it exited with signal " << std::to_string(signalCode)
+            << ".";
       }
       return true;
     }
@@ -257,8 +258,8 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
         << "External command took too long to exit. "
         << "Sending SIGTERM...";
     if (kill(pid, SIGTERM) == -1) {
-      TASK_LOG(ERROR, loggingMetadata)
-          << "Failed to send SIGTERM: " << strerror(errno);
+      TASK_LOG(ERROR, loggingMetadata) << "Failed to send SIGTERM: "
+                                       << strerror(errno);
       forceKillRequired = true;
     } else {
       Timer t(tickPeriod, milliseconds(1000));
@@ -273,8 +274,8 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
     TASK_LOG(WARNING, loggingMetadata)
         << "External command is still running. Sending SIGKILL...";
     if (kill(pid, SIGKILL) == -1) {
-      TASK_LOG(ERROR, loggingMetadata)
-          << "Failed to kill the command: " << strerror(errno);
+      TASK_LOG(ERROR, loggingMetadata) << "Failed to kill the command: "
+                                       << strerror(errno);
       return Error("Command \"" + command +
                    "\" took too long to execute and SIGKILL failed.");
     } else {
@@ -311,31 +312,37 @@ CommandRunner::CommandRunner(bool debug,
  *
  * @return The output of the command read from the output file.
  */
-Try<std::string> CommandRunner::run(const Command& command,
-                                    const std::string& input) {
+Try<string> CommandRunner::run(const Command& command,
+                               const std::string& input) {
   try {
     TemporaryFile inputFile;
     TemporaryFile outputFile;
+    TemporaryFile errorFile;
     inputFile.write(input);
 
     if (m_debug) {
       TASK_LOG(INFO, m_loggingMetadata)
           << "Calling command: \"" << command.command() << "\" ("
           << command.timeout() << "s) " << inputFile.filepath() << " "
-          << outputFile.filepath();
+          << outputFile.filepath() << " " << errorFile.filepath();
     } else {
-      TASK_LOG(INFO, m_loggingMetadata)
-          << "Calling command: \"" << command.command() << "\" ("
-          << command.timeout() << "s)";
+      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \""
+                                        << command.command() << "\" ("
+                                        << command.timeout() << "s)";
     }
 
     vector<string> args;
     args.push_back(inputFile.filepath());
     args.push_back(outputFile.filepath());
+    args.push_back(errorFile.filepath());
 
     Try<Nothing> result = runCommandWithTimeout(
         command.command(), args, command.timeout(), m_loggingMetadata);
     if (result.isError()) {
+      string stderr = errorFile.readAll();
+      if (!stderr.empty()) {
+        throw std::runtime_error(result.error() + " Cause: " + stderr);
+      }
       throw std::runtime_error(result.error());
     }
 
