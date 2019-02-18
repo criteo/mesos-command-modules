@@ -9,6 +9,7 @@ using namespace criteo::mesos;
 using ::mesos::ContainerID;
 using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
+using ::mesos::slave::ContainerLimitation;
 
 class CommandIsolatorTest : public ::testing::Test {
  protected:
@@ -17,8 +18,10 @@ class CommandIsolatorTest : public ::testing::Test {
 
  public:
   void SetUp() {
-    isolator.reset(new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
-                                       Command(g_resourcesPath + "cleanup.sh")));
+    isolator.reset(
+        new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+                            Command(g_resourcesPath + "watch.sh"),
+                            Command(g_resourcesPath + "cleanup.sh")));
     containerId.set_value("container_id");
 
     containerConfig.set_rootfs("/isolated_fs");
@@ -42,6 +45,17 @@ TEST_F(CommandIsolatorTest,
 }
 
 TEST_F(CommandIsolatorTest,
+       should_run_watch_command_and_retrieve_container_limitation) {
+  auto containerLimitation = isolator->watch(containerId);
+
+  AWAIT_READY(containerLimitation);
+
+  ContainerLimitation limited = containerLimitation.get();
+
+  EXPECT_EQ("too much toto", limited.message());
+}
+
+TEST_F(CommandIsolatorTest,
        should_run_cleanup_command_and_terminates_successfully) {
   auto future = isolator->cleanup(containerId);
   AWAIT_READY(future);
@@ -51,7 +65,9 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(Command("unexisting.sh"), Command("unexisting.sh")));
+    isolator.reset(new CommandIsolator(Command("unexisting.sh"),
+                                       Command("unexisting.sh"),
+                                       Command("unexisting.sh")));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -60,6 +76,12 @@ TEST_F(UnexistingCommandIsolatorTest,
        should_try_to_run_prepare_command_and_fail) {
   auto future = isolator->prepare(containerId, containerConfig);
   AWAIT_FAILED(future);
+}
+
+TEST_F(UnexistingCommandIsolatorTest,
+       should_try_to_run_watch_command_and_fail) {
+  auto future = isolator->watch(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
 }
 
 TEST_F(UnexistingCommandIsolatorTest,
@@ -72,8 +94,9 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(
-        new CommandIsolator(Command(g_resourcesPath + "prepare_malformed.sh"), None()));
+    isolator.reset(new CommandIsolator(
+        Command(g_resourcesPath + "prepare_malformed.sh"),
+        Command(g_resourcesPath + "watch_malformed.sh"), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -84,11 +107,17 @@ TEST_F(MalformedCommandIsolatorTest,
   AWAIT_FAILED(future);
 }
 
+TEST_F(MalformedCommandIsolatorTest,
+       should_run_watch_command_and_handle_malformed_output_json) {
+  auto future = isolator->watch(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
+}
+
 class EmptyCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(None(), None()));
+    isolator.reset(new CommandIsolator(None(), None(), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -102,6 +131,12 @@ TEST_F(
 }
 
 TEST_F(EmptyCommandIsolatorTest,
+       should_resolve_promise_when_watch_command_is_empty) {
+  auto future = isolator->watch(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
+}
+
+TEST_F(EmptyCommandIsolatorTest,
        should_resolve_promise_when_cleanup_command_is_empty) {
   auto future = isolator->cleanup(containerId);
   AWAIT_READY(future);
@@ -112,7 +147,8 @@ class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
-        Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"), None()));
+        Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"),
+        g_resourcesPath + "watch_incorrect_protobuf.sh", None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -121,4 +157,10 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_prepare_command_and_handle_incorrect_protobuf_output) {
   auto future = isolator->prepare(containerId, containerConfig);
   AWAIT_FAILED(future);
+}
+
+TEST_F(IncorrectProtobufCommandIsolatorTest,
+       should_run_watch_command_and_handle_incorrect_protobuf_output) {
+  auto future = isolator->watch(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
 }

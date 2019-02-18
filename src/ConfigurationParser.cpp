@@ -18,6 +18,7 @@ const string SLAVE_REMOVE_EXECUTOR_KEY = "hook_slave_remove_executor_hook";
 
 // Isolator commands.
 const string PREPARE_KEY = "isolator_prepare";
+const string WATCH_KEY = "isolator_watch";
 const string CLEANUP_KEY = "isolator_cleanup";
 
 // Additional parameters.
@@ -70,6 +71,7 @@ Configuration ConfigurationParser::parse(
       extractCommand(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
 
   configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
+  configuration.watchCommand = extractCommand(p, WATCH_KEY);
   configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
 
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
