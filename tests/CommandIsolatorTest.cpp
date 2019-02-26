@@ -164,19 +164,3 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
   auto future = isolator->watch(containerId);
   AWAIT_ASSERT_ABANDONED(future);
 }
-
-class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
- public:
-  void SetUp() {
-    CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(
-        None(), Command(g_resourcesPath + "watch_empty.sh"), None()));
-  }
-  std::unique_ptr<CommandIsolator> isolator;
-};
-
-TEST_F(EmptyOutputCommandIsolatorTest,
-       should_run_watch_command_and_do_nothing_on_empty_output) {
-  auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
-}
