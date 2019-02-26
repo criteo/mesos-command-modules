@@ -249,28 +249,23 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
     return false;
   };
 
-  // Hack to support command without timeout
-  // TODO: to remove once the CommandIsolator::watch implementation has been
-  // changed
-  if (timeoutInSeconds > 0) {
-    milliseconds tickPeriod(100);
-    Timer t1(tickPeriod, milliseconds(timeoutInSeconds * 1000));
-    t1.run(waitProcess);
+  milliseconds tickPeriod(100);
+  Timer t1(tickPeriod, milliseconds(timeoutInSeconds * 1000));
+  t1.run(waitProcess);
 
-    if (t1.hasTimedOut() && !forceKillRequired) {
-      TASK_LOG(WARNING, loggingMetadata)
-          << "External command took too long to exit. "
-          << "Sending SIGTERM...";
-      if (kill(pid, SIGTERM) == -1) {
-        TASK_LOG(ERROR, loggingMetadata)
-            << "Failed to send SIGTERM: " << strerror(errno);
+  if (t1.hasTimedOut() && !forceKillRequired) {
+    TASK_LOG(WARNING, loggingMetadata)
+        << "External command took too long to exit. "
+        << "Sending SIGTERM...";
+    if (kill(pid, SIGTERM) == -1) {
+      TASK_LOG(ERROR, loggingMetadata) << "Failed to send SIGTERM: "
+                                       << strerror(errno);
+      forceKillRequired = true;
+    } else {
+      Timer t(tickPeriod, milliseconds(1000));
+      t.run(waitProcess);
+      if (t.hasTimedOut()) {
         forceKillRequired = true;
-      } else {
-        Timer t(tickPeriod, milliseconds(1000));
-        t.run(waitProcess);
-        if (t.hasTimedOut()) {
-          forceKillRequired = true;
-        }
       }
     }
   }
@@ -279,8 +274,8 @@ Try<Nothing> runCommandWithTimeout(const std::string& command,
     TASK_LOG(WARNING, loggingMetadata)
         << "External command is still running. Sending SIGKILL...";
     if (kill(pid, SIGKILL) == -1) {
-      TASK_LOG(ERROR, loggingMetadata)
-          << "Failed to kill the command: " << strerror(errno);
+      TASK_LOG(ERROR, loggingMetadata) << "Failed to kill the command: "
+                                       << strerror(errno);
       return Error("Command \"" + command +
                    "\" took too long to execute and SIGKILL failed.");
     } else {
@@ -331,9 +326,9 @@ Try<string> CommandRunner::run(const Command& command,
           << command.timeout() << "s) " << inputFile.filepath() << " "
           << outputFile.filepath() << " " << errorFile.filepath();
     } else {
-      TASK_LOG(INFO, m_loggingMetadata)
-          << "Calling command: \"" << command.command() << "\" ("
-          << command.timeout() << "s)";
+      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \""
+                                        << command.command() << "\" ("
+                                        << command.timeout() << "s)";
     }
 
     vector<string> args;
