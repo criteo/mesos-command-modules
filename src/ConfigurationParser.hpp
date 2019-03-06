@@ -15,6 +15,7 @@ namespace mesos {
  */
 struct Configuration {
   Option<Command> prepareCommand;
+  Option<Command> watchCommand;
   Option<Command> cleanupCommand;
 
   Option<Command> slaveRunTaskLabelDecoratorCommand;

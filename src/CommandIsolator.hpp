@@ -39,6 +39,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    *   otherwise logs nothing
    */
   explicit CommandIsolator(const Option<Command>& prepareCommand,
+                           const Option<Command>& watchCommand,
                            const Option<Command>& cleanupCommand,
                            bool isDebugMode = false);
 
@@ -69,6 +70,12 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @return A future resolving nothing if successful.
    */
   virtual process::Future<Nothing> cleanup(
+      const ::mesos::ContainerID& containerId);
+
+  // Watch the containerized executor and report if any resource
+  // constraint impacts the container, e.g., the kernel killing some
+  // processes.
+  virtual process::Future<::mesos::slave::ContainerLimitation> watch(
       const ::mesos::ContainerID& containerId);
 
   /**
