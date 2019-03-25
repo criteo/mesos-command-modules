@@ -32,15 +32,20 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * isolation primitive will not be treated.
    *
    * @param prepareCommand The command to execute when `prepare` event is
-   *   is triggered for a given container.
+   *   triggered for a given container.
    * @param cleanupCommand The command to execute when `cleanup` event is
-   *   is triggered for a given container.
+   *   triggered for a given container.
+   * @param watchCommand The command to execute when `watch` event is
+   *   triggered  for a given container. This command will be frequently called
+   * @param usageCommand The command to execute when `usage` event is triggered
+   *   for a given container. This command will be frequently called
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
   explicit CommandIsolator(const Option<Command>& prepareCommand,
                            const Option<Command>& watchCommand,
                            const Option<Command>& cleanupCommand,
+                           const Option<Command>& usageCommand,
                            bool isDebugMode = false);
 
   /**
@@ -87,6 +92,10 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * Get cleanup command.
    */
   const Option<Command>& cleanupCommand() const;
+
+  // Get resource usage of a given container
+  virtual process::Future<::mesos::ResourceStatistics> usage(
+      const ::mesos::ContainerID& containerId);
 
  private:
   CommandIsolatorProcess* m_process;

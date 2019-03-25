@@ -24,6 +24,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   CommandIsolatorProcess(const Option<Command>& prepareCommand,
                          const Option<Command>& watchCommand,
                          const Option<Command>& cleanupCommand,
+                         const Option<Command>& usageCommand,
                          bool isDebugMode);
 
   virtual process::Future<Option<ContainerLaunchInfo>> prepare(
@@ -33,6 +34,9 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
       const ContainerID& containerId);
 
   virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
+
+  virtual process::Future<::mesos::ResourceStatistics> usage(
+      const ContainerID& containerId);
 
   inline const Option<Command>& prepareCommand() const {
     return m_prepareCommand;
@@ -46,15 +50,18 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   Option<Command> m_prepareCommand;
   Option<Command> m_watchCommand;
   Option<Command> m_cleanupCommand;
+  Option<Command> m_usageCommand;
   bool m_isDebugMode;
 };
 
 CommandIsolatorProcess::CommandIsolatorProcess(
     const Option<Command>& prepareCommand, const Option<Command>& watchCommand,
-    const Option<Command>& cleanupCommand, bool isDebugMode)
+    const Option<Command>& cleanupCommand, const Option<Command>& usageCommand,
+    bool isDebugMode)
     : m_prepareCommand(prepareCommand),
       m_watchCommand(watchCommand),
       m_cleanupCommand(cleanupCommand),
+      m_usageCommand(usageCommand),
       m_isDebugMode(isDebugMode) {}
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
@@ -124,6 +131,40 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   return containerLimitation.get();
 }
 
+process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
+    const ContainerID& containerId) {
+  if (m_usageCommand.isNone()) {
+    return process::Future<::mesos::ResourceStatistics>();
+  }
+
+  logging::Metadata metadata = {containerId.value(), "usage"};
+
+  JSON::Object inputsJson;
+  inputsJson.values["container_id"] = JSON::protobuf(containerId);
+
+  Try<string> output = CommandRunner(m_isDebugMode, metadata)
+                           .run(m_usageCommand.get(), stringify(inputsJson));
+
+  if (output.isError()) {
+    LOG(WARNING) << "Unable to parse output: " << output.error();
+    return process::Future<::mesos::ResourceStatistics>();
+  }
+
+  if (output->empty()) {
+    return process::Future<::mesos::ResourceStatistics>();
+  }
+
+  Result<::mesos::ResourceStatistics> resourceStatistics =
+      jsonToProtobuf<::mesos::ResourceStatistics>(output.get());
+
+  if (resourceStatistics.isError()) {
+    LOG(WARNING) << "Unable to deserialize ResourceStatistics: "
+                 << resourceStatistics.error();
+    return process::Future<::mesos::ResourceStatistics>();
+  }
+  return resourceStatistics.get();
+}
+
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
     const ContainerID& containerId) {
   if (m_cleanupCommand.isNone()) {
@@ -148,9 +189,11 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
 CommandIsolator::CommandIsolator(const Option<Command>& prepareCommand,
                                  const Option<Command>& watchCommand,
                                  const Option<Command>& cleanupCommand,
+                                 const Option<Command>& usageCommand,
                                  bool isDebugMode)
     : m_process(new CommandIsolatorProcess(prepareCommand, watchCommand,
-                                           cleanupCommand, isDebugMode)) {
+                                           cleanupCommand, usageCommand,
+                                           isDebugMode)) {
   spawn(m_process);
 }
 
@@ -176,6 +219,11 @@ process::Future<ContainerLimitation> CommandIsolator::watch(
 process::Future<Nothing> CommandIsolator::cleanup(
     const ContainerID& containerId) {
   return dispatch(m_process, &CommandIsolatorProcess::cleanup, containerId);
+}
+
+process::Future<::mesos::ResourceStatistics> CommandIsolator::usage(
+    const ContainerID& containerId) {
+  return dispatch(m_process, &CommandIsolatorProcess::usage, containerId);
 }
 
 const Option<Command>& CommandIsolator::prepareCommand() const {

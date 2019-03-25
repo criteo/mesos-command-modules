@@ -21,7 +21,8 @@ using std::string;
     const ::mesos::Parameters& parameters) {
   Configuration cfg = ConfigurationParser::parse(parameters);
   return new CommandIsolator(cfg.prepareCommand, cfg.watchCommand,
-                             cfg.cleanupCommand, cfg.isDebugSet);
+                             cfg.cleanupCommand, cfg.usageCommand,
+                             cfg.isDebugSet);
 }
 }  // namespace mesos
 }  // namespace criteo
