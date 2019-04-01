@@ -17,6 +17,7 @@ struct Configuration {
   Option<Command> prepareCommand;
   Option<Command> watchCommand;
   Option<Command> cleanupCommand;
+  Option<Command> usageCommand;
 
   Option<Command> slaveRunTaskLabelDecoratorCommand;
   Option<Command> slaveExecutorEnvironmentDecoratorCommand;

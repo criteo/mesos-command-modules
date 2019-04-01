@@ -20,6 +20,7 @@ const string SLAVE_REMOVE_EXECUTOR_KEY = "hook_slave_remove_executor_hook";
 const string PREPARE_KEY = "isolator_prepare";
 const string WATCH_KEY = "isolator_watch";
 const string CLEANUP_KEY = "isolator_cleanup";
+const string USAGE_KEY = "isolator_usage";
 
 // Additional parameters.
 const string DEBUG_KEY = "debug";  // enable debug mode.
@@ -73,6 +74,7 @@ Configuration ConfigurationParser::parse(
   configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
   configuration.watchCommand = extractCommand(p, WATCH_KEY);
   configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
+  configuration.usageCommand = extractCommand(p, USAGE_KEY);
 
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
   return configuration;

@@ -21,7 +21,8 @@ class CommandIsolatorTest : public ::testing::Test {
     isolator.reset(
         new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
                             Command(g_resourcesPath + "watch.sh"),
-                            Command(g_resourcesPath + "cleanup.sh")));
+                            Command(g_resourcesPath + "cleanup.sh"),
+                            Command(g_resourcesPath + "usage.sh")));
     containerId.set_value("container_id");
 
     containerConfig.set_rootfs("/isolated_fs");
@@ -61,13 +62,26 @@ TEST_F(CommandIsolatorTest,
   AWAIT_READY(future);
 }
 
+TEST_F(CommandIsolatorTest,
+       should_run_usage_command_and_retrieve_container_limitation) {
+  auto resourceStatistics = isolator->usage(containerId);
+
+  AWAIT_READY(resourceStatistics);
+
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
+
+  EXPECT_EQ(5, stats.net_snmp_statistics().tcp_stats().currestab());
+}
+
 class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(Command("unexisting.sh"),
                                        Command("unexisting.sh"),
-                                       Command("unexisting.sh")));
+                                       Command("unexisting.sh"),
+                                       Command("unexisting.sh")
+                                       ));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -96,7 +110,10 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
         Command(g_resourcesPath + "prepare_malformed.sh"),
-        Command(g_resourcesPath + "watch_malformed.sh"), None()));
+        Command(g_resourcesPath + "watch_malformed.sh"),
+        None(),
+        Command(g_resourcesPath + "usage_malformed.sh")
+        ));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -113,11 +130,17 @@ TEST_F(MalformedCommandIsolatorTest,
   AWAIT_ASSERT_ABANDONED(future);
 }
 
+TEST_F(MalformedCommandIsolatorTest,
+       should_run_usage_command_and_handle_malformed_output_json) {
+  auto future = isolator->usage(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
+}
+
 class EmptyCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(None(), None(), None()));
+    isolator.reset(new CommandIsolator(None(), None(), None(), None()));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -142,13 +165,22 @@ TEST_F(EmptyCommandIsolatorTest,
   AWAIT_READY(future);
 }
 
+TEST_F(EmptyCommandIsolatorTest,
+       should_resolve_promise_when_usage_command_is_empty) {
+  auto future = isolator->usage(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
+}
+
 class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
         Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"),
-        g_resourcesPath + "watch_incorrect_protobuf.sh", None()));
+        g_resourcesPath + "watch_incorrect_protobuf.sh",
+        None(),
+        Command(g_resourcesPath + "usage_incorrect_protobuf.sh")
+        ));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -165,12 +197,20 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
   AWAIT_ASSERT_ABANDONED(future);
 }
 
+TEST_F(IncorrectProtobufCommandIsolatorTest,
+       should_run_usage_command_and_handle_incorrect_protobuf_output) {
+  auto future = isolator->usage(containerId);
+  AWAIT_ASSERT_ABANDONED(future);
+}
+
 class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
-        None(), Command(g_resourcesPath + "watch_empty.sh"), None()));
+        None(), Command(g_resourcesPath + "watch_empty.sh"), None(),
+        Command(g_resourcesPath + "usage_empty.sh")
+        ));
   }
   std::unique_ptr<CommandIsolator> isolator;
 };
