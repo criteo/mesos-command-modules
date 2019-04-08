@@ -132,8 +132,11 @@ TEST_F(MalformedCommandIsolatorTest,
 
 TEST_F(MalformedCommandIsolatorTest,
        should_run_usage_command_and_handle_malformed_output_json) {
-  auto future = isolator->usage(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  auto resourceStatistics = isolator->usage(containerId);
+
+  AWAIT_READY(resourceStatistics);
+
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
 class EmptyCommandIsolatorTest : public CommandIsolatorTest {
@@ -167,8 +170,11 @@ TEST_F(EmptyCommandIsolatorTest,
 
 TEST_F(EmptyCommandIsolatorTest,
        should_resolve_promise_when_usage_command_is_empty) {
-  auto future = isolator->usage(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  auto resourceStatistics = isolator->usage(containerId);
+
+  AWAIT_READY(resourceStatistics);
+
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
 class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
@@ -199,8 +205,11 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
 
 TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_usage_command_and_handle_incorrect_protobuf_output) {
-  auto future = isolator->usage(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  auto resourceStatistics = isolator->usage(containerId);
+
+  AWAIT_READY(resourceStatistics);
+
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
 class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
