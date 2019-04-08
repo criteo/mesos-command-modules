@@ -6,10 +6,12 @@
 #include <glog/logging.h>
 #include <process/dispatch.hpp>
 #include <process/process.hpp>
+#include <process/time.hpp>
 
 namespace criteo {
 namespace mesos {
 
+using process::Clock;
 using std::string;
 
 using ::mesos::ContainerID;
@@ -24,8 +26,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   CommandIsolatorProcess(const Option<Command>& prepareCommand,
                          const Option<Command>& watchCommand,
                          const Option<Command>& cleanupCommand,
-                         const Option<Command>& usageCommand,
-                         bool isDebugMode);
+                         const Option<Command>& usageCommand, bool isDebugMode);
 
   virtual process::Future<Option<ContainerLaunchInfo>> prepare(
       const ContainerID& containerId, const ContainerConfig& containerConfig);
@@ -134,7 +135,9 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
 process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
     const ContainerID& containerId) {
   if (m_usageCommand.isNone()) {
-    return process::Future<::mesos::ResourceStatistics>();
+    ::mesos::ResourceStatistics stats;
+    stats.set_timestamp(Clock::now().secs());
+    return stats;
   }
 
   logging::Metadata metadata = {containerId.value(), "usage"};
@@ -147,11 +150,15 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 
   if (output.isError()) {
     LOG(WARNING) << "Unable to parse output: " << output.error();
-    return process::Future<::mesos::ResourceStatistics>();
+    ::mesos::ResourceStatistics stats;
+    stats.set_timestamp(Clock::now().secs());
+    return stats;
   }
 
   if (output->empty()) {
-    return process::Future<::mesos::ResourceStatistics>();
+    ::mesos::ResourceStatistics stats;
+    stats.set_timestamp(Clock::now().secs());
+    return stats;
   }
 
   Result<::mesos::ResourceStatistics> resourceStatistics =
@@ -160,7 +167,9 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
   if (resourceStatistics.isError()) {
     LOG(WARNING) << "Unable to deserialize ResourceStatistics: "
                  << resourceStatistics.error();
-    return process::Future<::mesos::ResourceStatistics>();
+    ::mesos::ResourceStatistics stats;
+    stats.set_timestamp(Clock::now().secs());
+    return stats;
   }
   return resourceStatistics.get();
 }
