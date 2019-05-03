@@ -18,8 +18,13 @@
 
 #include <glog/logging.h>
 
+#include <stout/duration.hpp>
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
+
+#include <process/collect.hpp>
+#include <process/process.hpp>
+#include <process/subprocess.hpp>
 
 #define TEMP_FILE_TEMPLATE "/tmp/criteo-mesos-XXXXXX"
 
@@ -32,6 +37,7 @@ namespace mesos {
 using std::string;
 using std::vector;
 using namespace std::chrono;
+using namespace process;
 
 /*
  * Represent a temporary file that can be either written or read from.
@@ -72,10 +78,10 @@ class TemporaryFile {
     ofs.close();
   }
 
-  ~TemporaryFile() {
-    if (remove(m_filepath.c_str()) != 0)
-      std::cerr << "Error while deleting " << m_filepath << std::endl;
-  }
+  /* ~TemporaryFile() { */
+  /*   if (remove(m_filepath.c_str()) != 0) */
+  /*     std::cerr << "Error while deleting " << m_filepath << std::endl; */
+  /* } */
 
   inline const std::string& filepath() const { return m_filepath; }
 
@@ -196,124 +202,85 @@ class Timer {
  *
  * TODO(clems4ever): split this method so that it becomes easier to read.
  *
- * @param command The command to execute in the child process.
+ * @param theCommand The command to execute in the child process.
  * @param timeout The timeout deadline in seconds before killing the
  * child process.
  */
-Try<Nothing> runCommandWithTimeout(const std::string& command,
-                                   const std::vector<std::string>& args,
-                                   unsigned long timeoutInSeconds,
-                                   const logging::Metadata& loggingMetadata) {
-  int status;
-  bool forceKillRequired = false;
-  int exitCode = 0;
-  int signalCode = 0;
+Future<Try<bool>> runCommandWithTimeout(
+    const std::string& theCommand, const std::vector<std::string>& args,
+    unsigned long timeoutInSeconds, const logging::Metadata& loggingMetadata) {
+  // FIXME: remove this
+  vector<string> full_args;
+  full_args.push_back(theCommand);
+  full_args.push_back(args[0]);
+  full_args.push_back(args[1]);
+  full_args.push_back(args[2]);
+  Try<Subprocess> command =
+      subprocess(theCommand, full_args, Subprocess::PATH(args[0]),
+                 Subprocess::PATH(args[1]), Subprocess::PATH(args[2]));
 
-  if (!fileExists(command)) {
-    return Error("No such file or directory: \"" + command + "\"");
+  if (command.isError()) {
+    TASK_LOG(ERROR, loggingMetadata) << "Error launching external command \""
+                                     << theCommand << "\": " << command.error();
+    return Error("launch error");
   }
-
-  if (!isFileExecutable(command)) {
-    return Error("File is not executable: \"" + command + "\"");
-  }
-
-  pid_t pid = popen2(command, args);
-
-  auto waitProcess = [pid, &status, loggingMetadata, command,
-                      &forceKillRequired, &exitCode, &signalCode]() {
-    int rc = waitpid(pid, &status, WNOHANG);
-    if (rc < 0) {
-      TASK_LOG(ERROR, loggingMetadata)
-          << "Error when waiting for child process running the "
-          << "external command: " << strerror(errno);
-      forceKillRequired = true;
-      return true;
-    }
-
-    if (rc > 0 && (WIFEXITED(status) || WIFSIGNALED(status))) {
-      if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
-        exitCode = WEXITSTATUS(status);
-        TASK_LOG(ERROR, loggingMetadata)
-            << "Failed to successfully run the command \"" << command
-            << "\", it failed with status " << std::to_string(exitCode) << ".";
-      }
-      if (WIFSIGNALED(status) && WTERMSIG(status) != 0) {
-        signalCode = WTERMSIG(status);
-        TASK_LOG(ERROR, loggingMetadata)
-            << "Failed to successfully run the command \"" << command
-            << "\", it exited with signal " << std::to_string(signalCode)
-            << ".";
-      }
-      return true;
-    }
-    return false;
-  };
-
-  milliseconds tickPeriod(100);
-  Timer t1(tickPeriod, milliseconds(timeoutInSeconds * 1000));
-  t1.run(waitProcess);
-
-  if (t1.hasTimedOut() && !forceKillRequired) {
-    TASK_LOG(WARNING, loggingMetadata)
-        << "External command took too long to exit. "
-        << "Sending SIGTERM...";
-    if (kill(pid, SIGTERM) == -1) {
-      TASK_LOG(ERROR, loggingMetadata) << "Failed to send SIGTERM: "
-                                       << strerror(errno);
-      forceKillRequired = true;
-    } else {
-      Timer t(tickPeriod, milliseconds(1000));
-      t.run(waitProcess);
-      if (t.hasTimedOut()) {
-        forceKillRequired = true;
-      }
-    }
-  }
-
-  if (forceKillRequired) {
-    TASK_LOG(WARNING, loggingMetadata)
-        << "External command is still running. Sending SIGKILL...";
-    if (kill(pid, SIGKILL) == -1) {
-      TASK_LOG(ERROR, loggingMetadata) << "Failed to kill the command: "
-                                       << strerror(errno);
-      return Error("Command \"" + command +
-                   "\" took too long to execute and SIGKILL failed.");
-    } else {
-      return Error("Command \"" + command + "\" took too long to execute.");
-    }
-  }
-
-  if (exitCode > 0) {
-    return Error("Command \"" + command + "\" exited with return code " +
-                 std::to_string(exitCode) + ".");
-  } else if (signalCode > 0) {
-    return Error("Command \"" + command + "\" exited via signal " +
-                 std::to_string(signalCode) + ".");
-  }
-  return Nothing();
+  Subprocess process = command.get();
+  return process.status()
+      .then([=](Option<int> status) -> Future<Try<bool>> {
+        if (status.isNone()) {
+          TASK_LOG(ERROR, loggingMetadata)
+              << "Error getting status for external command \"" << theCommand
+              << "\"";
+          return Error("error getting command status");
+        } else if (status.get() != 0) {
+          if (WIFSIGNALED(status.get()) && WTERMSIG(status.get()) != 0) {
+            int signalCode = WTERMSIG(status.get());
+            TASK_LOG(ERROR, loggingMetadata)
+                << "Failed to successfully run the command \"" << theCommand
+                << "\", it exited with signal " << signalCode;
+            return Error("Command \"" + theCommand + "\" exited via signal " +
+                         std::to_string(signalCode) + ".");
+          }
+          int exitCode = WEXITSTATUS(status.get());
+          TASK_LOG(ERROR, loggingMetadata)
+              << "Failed to successfully run the command \"" << theCommand
+              << "\", it failed with status " << exitCode;
+          return Error("Command \"" + theCommand +
+                       "\" exited with return code " +
+                       std::to_string(exitCode) + ".");
+        }
+        return true;
+      })
+      .after(
+          Seconds(timeoutInSeconds),
+          [=](Future<Try<bool>> future) -> Future<Try<bool>> {
+            future.discard();
+            TASK_LOG(WARNING, loggingMetadata)
+                << "External command took too long to exit. "
+                << "Sending SIGTERM...";
+            if (kill(process.pid(), SIGTERM) == -1) {
+              TASK_LOG(ERROR, loggingMetadata)
+                  << "Failed to send SIGTERM: " << strerror(errno);
+              TASK_LOG(WARNING, loggingMetadata)
+                  << "External command is still running. Sending SIGKILL...";
+              if (kill(process.pid(), SIGKILL) == -1) {
+                TASK_LOG(ERROR, loggingMetadata)
+                    << "Failed to kill the command: " << strerror(errno);
+                return Error("Command \"" + theCommand +
+                             "\" took too long to execute and SIGKILL failed.");
+              }
+            }
+            return Error("Command \"" + theCommand +
+                         "\" took too long to execute.");
+          });
 }
 
 CommandRunner::CommandRunner(bool debug,
                              const logging::Metadata& loggingMetadata)
     : m_debug(debug), m_loggingMetadata(loggingMetadata) {}
 
-/*
- * Run a command to which we pass input and return an output. To pass
- * input and get output, CommandRunner pass two temporary files to the
- * command arguments, one being the input file the command read its
- * inputs from and one being the output file where the command must send
- * its outputs
- *
- * @param command The command to run.
- * @param input The input to pass to the command.
- * @param output The output generated by the command.
- * @param timeout The timeout deadline before killing the child process.
- * @param debug Enable debug mode logging inputs and outputs.
- *
- * @return The output of the command read from the output file.
- */
-Try<string> CommandRunner::run(const Command& command,
-                               const std::string& input) {
+Future<Try<string>> CommandRunner::asyncRun(const Command& command,
+                                            const std::string& input) {
   try {
     TemporaryFile inputFile;
     TemporaryFile outputFile;
@@ -326,9 +293,9 @@ Try<string> CommandRunner::run(const Command& command,
           << command.timeout() << "s) " << inputFile.filepath() << " "
           << outputFile.filepath() << " " << errorFile.filepath();
     } else {
-      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \""
-                                        << command.command() << "\" ("
-                                        << command.timeout() << "s)";
+      TASK_LOG(INFO, m_loggingMetadata)
+          << "Calling command: \"" << command.command() << "\" ("
+          << command.timeout() << "s)";
     }
 
     vector<string> args;
@@ -336,17 +303,17 @@ Try<string> CommandRunner::run(const Command& command,
     args.push_back(outputFile.filepath());
     args.push_back(errorFile.filepath());
 
-    Try<Nothing> result = runCommandWithTimeout(
-        command.command(), args, command.timeout(), m_loggingMetadata);
-    if (result.isError()) {
-      string stderr = errorFile.readAll();
-      if (!stderr.empty()) {
-        throw std::runtime_error(result.error() + " Cause: " + stderr);
-      }
-      throw std::runtime_error(result.error());
-    }
-
-    return outputFile.readAll();
+    return runCommandWithTimeout(command.command(), args, command.timeout(),
+                                 m_loggingMetadata)
+        .then([=](Try<bool> t) -> Future<Try<string>> {
+          if (t.isError()) {
+            Try<string> stderr = os::read(errorFile.filepath());
+            if (stderr.isError() || stderr.get().empty())
+              return Error(t.error());
+            return Error(t.error() + " Cause: " + stderr.get());
+          }
+          return os::read(outputFile.filepath());
+        });
   } catch (const std::runtime_error& e) {
     if (m_debug) {
       return Error("[DEBUG] " + string(e.what()) + ". Input was \"" + input +
@@ -354,6 +321,24 @@ Try<string> CommandRunner::run(const Command& command,
     }
     return Error(e.what());
   }
+}
+
+Try<string> CommandRunner::run(const Command& command,
+                               const std::string& input) {
+  Future<Try<string>> output = asyncRun(command, input);
+  auto result = await(output);
+  TASK_LOG(INFO, m_loggingMetadata) << "START AWAIT";
+  if (!result.await(Seconds(command.timeout() + 1))) {
+    return Error("command timed out");
+  }
+  TASK_LOG(INFO, m_loggingMetadata) << "END AWAIT";
+  if (!output.isReady()) {
+    return Error("command execution error");
+  }
+  TASK_LOG(INFO, m_loggingMetadata) << "START GET";
+  Try<string> out = output.get();
+  TASK_LOG(INFO, m_loggingMetadata) << "END GET";
+  return out;
 }
 }  // namespace mesos
 }  // namespace criteo

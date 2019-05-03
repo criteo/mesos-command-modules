@@ -50,15 +50,26 @@ TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
   TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "force_kill.sh", 2), "");
+      CommandRunner(false, metadata)
+          .run(Command(g_resourcesPath + "force_kill.sh", 2), "");
   EXPECT_ERROR(output);
   TEST_TIMEOUT_FAIL_END(40000)
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
-  EXPECT_ERROR(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""));
-  EXPECT_ERROR_MESSAGE(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""),
-                       std::regex("Command \".*throw.sh\" exited with return code 1."));
+  Try<string> output =
+      m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), "");
+  EXPECT_ERROR(output);
+  EXPECT_ERROR_MESSAGE(
+      output, std::regex("Command \".*throw.sh\" exited with return code 1."));
+}
+
+TEST_F(CommandRunnerTest, should_not_crash_when_killed_by_signal) {
+  Try<string> output =
+      m_commandRunner->run(Command(g_resourcesPath + "autokill.sh", 10), "");
+  EXPECT_ERROR(output);
+  EXPECT_ERROR_MESSAGE(
+      output, std::regex("Command \".*autokill.sh\" exited via signal 15."));
 }
 
 TEST_F(CommandRunnerTest, should_not_return_error_when_script_works) {

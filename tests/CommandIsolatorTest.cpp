@@ -20,7 +20,7 @@ class CommandIsolatorTest : public ::testing::Test {
   void SetUp() {
     isolator.reset(
         new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
-                            Command(g_resourcesPath + "watch.sh"),
+                            Command(g_resourcesPath + "watch.sh", 3),
                             Command(g_resourcesPath + "cleanup.sh"),
                             Command(g_resourcesPath + "usage.sh")));
     containerId.set_value("container_id");
