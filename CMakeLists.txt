@@ -119,5 +119,5 @@ find_path(GTEST_INCLUDE_DIR NAMES "gtest/gtest.h" PATHS ${GTEST_SRCH_PATH} NO_DE
 
 target_include_directories(${TEST_BINARY_NAME} PUBLIC ${GTEST_INCLUDE_DIR} tests)
 target_link_libraries(${TEST_BINARY_NAME} ${PROJECT_NAME} ${MESOS_BUILD_DIR}/3rdparty/.libs/libgmock.a pthread)
-add_custom_target(check COMMAND ${TEST_BINARY_NAME} ${CMAKE_SOURCE_DIR}/tests/scripts/)
+add_custom_target(check COMMAND "${TEST_BINARY_NAME}")
 

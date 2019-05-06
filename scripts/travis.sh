@@ -21,4 +21,4 @@ if [ -n "$TRAVIS" ]; then
 fi
 
 make
-make check
+TEST_RESOURCES_PATH=../tests/scripts/ make check
