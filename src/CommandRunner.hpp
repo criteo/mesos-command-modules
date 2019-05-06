@@ -46,7 +46,7 @@ class CommandRunner {
 
   /**
    * Run a command asynchonously.
-   * This method leverages libprocess primitives to avoid blocking unnecessarily 
+   * This method leverages libprocess primitives to avoid blocking unnecessarily
    * while waiting for the command's output.
    *
    * The command must exit in less than the timeout given as parameter,
