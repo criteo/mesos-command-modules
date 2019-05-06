@@ -327,18 +327,13 @@ Try<string> CommandRunner::run(const Command& command,
                                const std::string& input) {
   Future<Try<string>> output = asyncRun(command, input);
   auto result = await(output);
-  TASK_LOG(INFO, m_loggingMetadata) << "START AWAIT";
   if (!result.await(Seconds(command.timeout() + 1))) {
     return Error("command timed out");
   }
-  TASK_LOG(INFO, m_loggingMetadata) << "END AWAIT";
   if (!output.isReady()) {
     return Error("command execution error");
   }
-  TASK_LOG(INFO, m_loggingMetadata) << "START GET";
-  Try<string> out = output.get();
-  TASK_LOG(INFO, m_loggingMetadata) << "END GET";
-  return out;
+  return output.get();
 }
 }  // namespace mesos
 }  // namespace criteo
