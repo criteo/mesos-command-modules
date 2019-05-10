@@ -21,6 +21,7 @@
 #include <stout/duration.hpp>
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
+#include <stout/os.hpp>
 
 #include <process/collect.hpp>
 #include <process/process.hpp>
@@ -77,11 +78,6 @@ class TemporaryFile {
     std::flush(ofs);
     ofs.close();
   }
-
-  /* ~TemporaryFile() { */
-  /*   if (remove(m_filepath.c_str()) != 0) */
-  /*     std::cerr << "Error while deleting " << m_filepath << std::endl; */
-  /* } */
 
   inline const std::string& filepath() const { return m_filepath; }
 
@@ -201,14 +197,20 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
 
     return runCommandWithTimeout(command.command(), args, command.timeout(),
                                  m_loggingMetadata)
-        .then([=](Try<bool> t) -> Future<Try<string>> {
-          if (t.isError()) {
+        .then([=](Try<bool> status) -> Future<Try<string>> {
+          if (status.isError()) {
             Try<string> stderr = os::read(errorFile.filepath());
             if (stderr.isError() || stderr.get().empty())
-              return Error(t.error());
-            return Error(t.error() + " Cause: " + stderr.get());
+              return Error(status.error());
+            return Error(status.error() + " Cause: " + stderr.get());
           }
           return os::read(outputFile.filepath());
+        })
+        .then([=](Future<Try<string>> output) -> Future<Try<string>> {
+          os::rm(inputFile.filepath());
+          os::rm(outputFile.filepath());
+          os::rm(errorFile.filepath());
+          return output;
         });
   } catch (const std::runtime_error& e) {
     if (m_debug) {
