@@ -136,9 +136,11 @@ Future<Try<bool>> runCommandWithTimeout(
                          std::to_string(signalCode) + ".");
           }
           int exitCode = WEXITSTATUS(status.get());
+          string error(os::strerror(exitCode));
           TASK_LOG(ERROR, loggingMetadata)
               << "Failed to successfully run the command \"" << executable
-              << "\", it failed with status " << exitCode;
+              << "\", it failed with status " << exitCode << " (" << error
+              << ")";
           return Error("Command \"" + executable +
                        "\" exited with return code " +
                        std::to_string(exitCode) + ".");
