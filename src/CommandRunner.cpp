@@ -216,8 +216,7 @@ Future<Try<bool>> runCommandWithTimeout(
   full_args.push_back(args[1]);
   full_args.push_back(args[2]);
   Try<Subprocess> command =
-      subprocess(theCommand, full_args, Subprocess::PATH(args[0]),
-                 Subprocess::PATH(args[1]), Subprocess::PATH(args[2]));
+      subprocess(theCommand, full_args, Subprocess::PATH(args[0]));
 
   if (command.isError()) {
     TASK_LOG(ERROR, loggingMetadata) << "Error launching external command \""

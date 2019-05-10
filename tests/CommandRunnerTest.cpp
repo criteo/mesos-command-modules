@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <process/gtest.hpp>
 
 #include "CommandRunner.hpp"
 #include "gtest_helpers.hpp"
@@ -10,6 +11,7 @@
 using std::string;
 
 using namespace criteo::mesos;
+using namespace process;
 
 extern string g_resourcesPath;
 
@@ -37,23 +39,27 @@ TEST_F(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
   EXPECT_EQ(output.get(), "HELLO > output");
 }
 
-TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
-  TEST_TIMEOUT_BEGIN
-  logging::Metadata metadata = CommandRunnerTest::createMetada();
+TEST_F(CommandRunnerTest, should_not_capture_stdout) {
   Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "infinite_loop.sh", 2), "");
-  EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(4000)
+      m_commandRunner->run(Command(g_resourcesPath + "echo_stdout.sh", 10), "HELLO");
+  EXPECT_TRUE(output.get().empty());
+}
+
+TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
+  logging::Metadata metadata = CommandRunnerTest::createMetada();
+  Future<Try<string>> output =
+      CommandRunner(false, metadata).asyncRun(Command(g_resourcesPath + "infinite_loop.sh", 2), "");
+  AWAIT_ASSERT_READY_FOR(output, Seconds(4000));
+  EXPECT_ERROR(output.get());
 }
 
 TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
-  TEST_TIMEOUT_BEGIN
   logging::Metadata metadata = CommandRunnerTest::createMetada();
-  Try<string> output =
+  Future<Try<string>> output =
       CommandRunner(false, metadata)
           .run(Command(g_resourcesPath + "force_kill.sh", 2), "");
-  EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(40000)
+  AWAIT_ASSERT_READY_FOR(output, Seconds(40000));
+  EXPECT_ERROR(output.get());
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {

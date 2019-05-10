@@ -1,6 +1,7 @@
 #include "ConfigurationParser.hpp"
 
 #include <stout/foreach.hpp>
+#include <map>
 
 namespace criteo {
 namespace mesos {
