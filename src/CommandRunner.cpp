@@ -202,49 +202,51 @@ class Timer {
  *
  * TODO(clems4ever): split this method so that it becomes easier to read.
  *
- * @param theCommand The command to execute in the child process.
+ * @param executable Absolute path to the executed of rhe command to execute in
+ * the child process.
  * @param timeout The timeout deadline in seconds before killing the
  * child process.
  */
 Future<Try<bool>> runCommandWithTimeout(
-    const std::string& theCommand, const std::vector<std::string>& args,
+    const std::string& executable, const std::vector<std::string>& args,
     unsigned long timeoutInSeconds, const logging::Metadata& loggingMetadata) {
   // FIXME: remove this
   vector<string> full_args;
-  full_args.push_back(theCommand);
+  full_args.push_back(executable);
   full_args.push_back(args[0]);
   full_args.push_back(args[1]);
   full_args.push_back(args[2]);
   Try<Subprocess> command =
-      subprocess(theCommand, full_args, Subprocess::PATH(args[0]));
+      subprocess(executable, full_args, Subprocess::PATH(args[0]));
 
   if (command.isError()) {
-    TASK_LOG(ERROR, loggingMetadata) << "Error launching external command \""
-                                     << theCommand << "\": " << command.error();
-    return Error("launch error");
+    string errorMessage = "Error launching external command \"" + executable +
+                          "\": " + command.error();
+    TASK_LOG(ERROR, loggingMetadata) << errorMessage;
+    return Error(errorMessage);
   }
   Subprocess process = command.get();
   return process.status()
       .then([=](Option<int> status) -> Future<Try<bool>> {
         if (status.isNone()) {
-          TASK_LOG(ERROR, loggingMetadata)
-              << "Error getting status for external command \"" << theCommand
-              << "\"";
-          return Error("error getting command status");
+          string errorMessage = "Error getting status for external command \"" +
+                                executable + "\"";
+          TASK_LOG(ERROR, loggingMetadata) << errorMessage;
+          return Error(errorMessage);
         } else if (status.get() != 0) {
           if (WIFSIGNALED(status.get()) && WTERMSIG(status.get()) != 0) {
             int signalCode = WTERMSIG(status.get());
             TASK_LOG(ERROR, loggingMetadata)
-                << "Failed to successfully run the command \"" << theCommand
+                << "Failed to successfully run the command \"" << executable
                 << "\", it exited with signal " << signalCode;
-            return Error("Command \"" + theCommand + "\" exited via signal " +
+            return Error("Command \"" + executable + "\" exited via signal " +
                          std::to_string(signalCode) + ".");
           }
           int exitCode = WEXITSTATUS(status.get());
           TASK_LOG(ERROR, loggingMetadata)
-              << "Failed to successfully run the command \"" << theCommand
+              << "Failed to successfully run the command \"" << executable
               << "\", it failed with status " << exitCode;
-          return Error("Command \"" + theCommand +
+          return Error("Command \"" + executable +
                        "\" exited with return code " +
                        std::to_string(exitCode) + ".");
         }
@@ -265,11 +267,11 @@ Future<Try<bool>> runCommandWithTimeout(
               if (kill(process.pid(), SIGKILL) == -1) {
                 TASK_LOG(ERROR, loggingMetadata)
                     << "Failed to kill the command: " << strerror(errno);
-                return Error("Command \"" + theCommand +
+                return Error("Command \"" + executable +
                              "\" took too long to execute and SIGKILL failed.");
               }
             }
-            return Error("Command \"" + theCommand +
+            return Error("Command \"" + executable +
                          "\" took too long to execute.");
           });
 }
@@ -326,7 +328,7 @@ Try<string> CommandRunner::run(const Command& command,
                                const std::string& input) {
   Future<Try<string>> output = asyncRun(command, input);
   auto result = await(output);
-  if (!result.await(Seconds(command.timeout() + 1))) {
+  if (!result.await()) {
     return Error("command timed out");
   }
   if (!output.isReady()) {
