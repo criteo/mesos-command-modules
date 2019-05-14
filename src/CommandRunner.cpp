@@ -105,14 +105,10 @@ inline static bool processStillRunning(pid_t pid) {
 Future<Try<bool>> runCommandWithTimeout(
     const std::string& executable, const std::vector<std::string>& args,
     unsigned long timeoutInSeconds, const logging::Metadata& loggingMetadata) {
-  // FIXME: remove this
-  vector<string> full_args;
-  full_args.push_back(executable);
-  full_args.push_back(args[0]);
-  full_args.push_back(args[1]);
-  full_args.push_back(args[2]);
+  vector<string> commandLine = {executable, args[0], args[1], args[2]};
+
   Try<Subprocess> command =
-      subprocess(executable, full_args, Subprocess::PATH(args[0]));
+      subprocess(executable, commandLine, Subprocess::PATH(args[0]));
 
   if (command.isError()) {
     string errorMessage = "Error launching external command \"" + executable +
@@ -204,10 +200,8 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
           << command.timeout() << "s)";
     }
 
-    vector<string> args;
-    args.push_back(inputFile.filepath());
-    args.push_back(outputFile.filepath());
-    args.push_back(errorFile.filepath());
+    vector<string> args = {inputFile.filepath(), outputFile.filepath(),
+                           errorFile.filepath()};
 
     return runCommandWithTimeout(command.command(), args, command.timeout(),
                                  m_loggingMetadata)
@@ -240,10 +234,10 @@ Try<string> CommandRunner::run(const Command& command,
   Future<Try<string>> output = asyncRun(command, input);
   auto result = await(output);
   if (!result.await()) {
-    return Error("command timed out");
+    return Error("Command timed out");
   }
   if (!output.isReady()) {
-    return Error("command execution error");
+    return Error("Command execution error");
   }
   return output.get();
 }
