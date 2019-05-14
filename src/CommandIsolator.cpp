@@ -151,8 +151,12 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
   return CommandRunner(m_isDebugMode, metadata)
       .asyncRun(m_usageCommand.get(), stringify(inputsJson))
       .then([](Try<string> output) -> Future<::mesos::ResourceStatistics> {
-        if (output.isError() || output->empty()) {
+        if (output.isError()) {
           LOG(WARNING) << "Unable to parse output: " << output.error();
+          return emptyStats();
+        }
+        if (output->empty()) {
+          LOG(WARNING) << "Output is empty";
           return emptyStats();
         }
         Result<::mesos::ResourceStatistics> resourceStatistics =

@@ -229,3 +229,10 @@ TEST_F(EmptyOutputCommandIsolatorTest,
   auto future = isolator->watch(containerId);
   AWAIT_ASSERT_ABANDONED(future);
 }
+
+TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage) {
+  auto stats = isolator->usage(containerId);
+  AWAIT_READY(stats);
+  EXPECT_EQ(0, stats.get().cpus_system_time_secs());
+  EXPECT_TRUE(stats.get().has_timestamp());
+}
