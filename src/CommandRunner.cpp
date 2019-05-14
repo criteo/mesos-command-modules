@@ -155,17 +155,21 @@ Future<Try<bool>> runCommandWithTimeout(
             TASK_LOG(WARNING, loggingMetadata)
                 << "External command took too long to exit. "
                 << "Sending SIGTERM to " << process.pid() << "...";
-            if (kill(process.pid(), SIGTERM) == -1) {
+            Try<std::list<os::ProcessTree>> kill =
+                os::killtree(process.pid(), SIGTERM);
+            if (kill.isError()) {
               TASK_LOG(ERROR, loggingMetadata)
-                  << "Failed to send SIGTERM: " << strerror(errno);
+                  << "Failed to send SIGTERM: " << kill.error();
             }
             return after(Seconds(1)).then([=]() -> Future<Try<bool>> {
               if (processStillRunning(process.pid())) {
                 TASK_LOG(WARNING, loggingMetadata)
                     << "External command is still running. Sending SIGKILL...";
-                if (kill(process.pid(), SIGKILL) == -1) {
+                Try<std::list<os::ProcessTree>> kill =
+                    os::killtree(process.pid(), SIGKILL);
+                if (kill.isError()) {
                   TASK_LOG(ERROR, loggingMetadata)
-                      << "Failed to kill the command: " << strerror(errno);
+                      << "Failed to kill the command: " << kill.error();
                   return Failure(
                       "Command \"" + executable +
                       "\" took too long to execute and SIGKILL failed.");
