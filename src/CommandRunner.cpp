@@ -166,13 +166,13 @@ Future<Try<bool>> runCommandWithTimeout(
                 if (kill(process.pid(), SIGKILL) == -1) {
                   TASK_LOG(ERROR, loggingMetadata)
                       << "Failed to kill the command: " << strerror(errno);
-                  return Error(
+                  return Failure(
                       "Command \"" + executable +
                       "\" took too long to execute and SIGKILL failed.");
                 }
               }
-              return Error("Command \"" + executable +
-                           "\" took too long to execute.");
+              return Failure("Command \"" + executable +
+                             "\" took too long to execute.");
             });
           });
 }

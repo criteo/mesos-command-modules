@@ -49,7 +49,7 @@ TEST_F(CommandRunnerTest, should_SIGTERM_infinite_loop_command) {
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Future<Try<string>> output =
       CommandRunner(false, metadata).asyncRun(Command(g_resourcesPath + "infinite_loop.sh", 1), "");
-  AWAIT_ASSERT_READY_FOR(output, Seconds(4000));
+  AWAIT_ASSERT_FAILED_FOR(output, Seconds(4000));
   os::sleep(Milliseconds(100));
   EXPECT_PROCESS_EXITED("/tmp/infinite_loop.pid");
 }
@@ -59,7 +59,7 @@ TEST_F(CommandRunnerTest, should_force_SIGKILL_infinite_loop_command) {
   Future<Try<string>> output =
       CommandRunner(false, metadata)
           .asyncRun(Command(g_resourcesPath + "force_kill.sh", 1), "");
-  AWAIT_ASSERT_READY_FOR(output, Seconds(4000));
+  AWAIT_ASSERT_FAILED_FOR(output, Seconds(4000));
   os::sleep(Milliseconds(100));
   EXPECT_PROCESS_EXITED("/tmp/force_kill.pid");
 }
