@@ -20,9 +20,11 @@
 
 #include <stout/duration.hpp>
 #include <stout/nothing.hpp>
-#include <stout/try.hpp>
 #include <stout/os.hpp>
+#include <stout/proc.hpp>
+#include <stout/try.hpp>
 
+#include <process/after.hpp>
 #include <process/collect.hpp>
 #include <process/process.hpp>
 #include <process/subprocess.hpp>
@@ -85,6 +87,10 @@ class TemporaryFile {
   std::string m_filepath;
 };
 
+inline static bool processStillRunning(pid_t pid) {
+  return proc::status(pid).isSome();
+}
+
 /*
  * Fork the process to run command and kill the child if it does not
  * finish before the timeout deadline.
@@ -146,24 +152,28 @@ Future<Try<bool>> runCommandWithTimeout(
       .after(
           Seconds(timeoutInSeconds),
           [=](Future<Try<bool>> future) -> Future<Try<bool>> {
-            future.discard();
             TASK_LOG(WARNING, loggingMetadata)
                 << "External command took too long to exit. "
-                << "Sending SIGTERM...";
+                << "Sending SIGTERM to " << process.pid() << "...";
             if (kill(process.pid(), SIGTERM) == -1) {
               TASK_LOG(ERROR, loggingMetadata)
                   << "Failed to send SIGTERM: " << strerror(errno);
-              TASK_LOG(WARNING, loggingMetadata)
-                  << "External command is still running. Sending SIGKILL...";
-              if (kill(process.pid(), SIGKILL) == -1) {
-                TASK_LOG(ERROR, loggingMetadata)
-                    << "Failed to kill the command: " << strerror(errno);
-                return Error("Command \"" + executable +
-                             "\" took too long to execute and SIGKILL failed.");
-              }
             }
-            return Error("Command \"" + executable +
-                         "\" took too long to execute.");
+            return after(Seconds(1)).then([=]() -> Future<Try<bool>> {
+              if (processStillRunning(process.pid())) {
+                TASK_LOG(WARNING, loggingMetadata)
+                    << "External command is still running. Sending SIGKILL...";
+                if (kill(process.pid(), SIGKILL) == -1) {
+                  TASK_LOG(ERROR, loggingMetadata)
+                      << "Failed to kill the command: " << strerror(errno);
+                  return Error(
+                      "Command \"" + executable +
+                      "\" took too long to execute and SIGKILL failed.");
+                }
+              }
+              return Error("Command \"" + executable +
+                           "\" took too long to execute.");
+            });
           });
 }
 

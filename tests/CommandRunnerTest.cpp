@@ -45,21 +45,23 @@ TEST_F(CommandRunnerTest, should_not_capture_stdout) {
   EXPECT_TRUE(output.get().empty());
 }
 
-TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
+TEST_F(CommandRunnerTest, should_SIGTERM_infinite_loop_command) {
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Future<Try<string>> output =
-      CommandRunner(false, metadata).asyncRun(Command(g_resourcesPath + "infinite_loop.sh", 2), "");
+      CommandRunner(false, metadata).asyncRun(Command(g_resourcesPath + "infinite_loop.sh", 1), "");
   AWAIT_ASSERT_READY_FOR(output, Seconds(4000));
-  EXPECT_ERROR(output.get());
+  os::sleep(Milliseconds(100));
+  EXPECT_PROCESS_EXITED("/tmp/infinite_loop.pid");
 }
 
-TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
+TEST_F(CommandRunnerTest, should_force_SIGKILL_infinite_loop_command) {
   logging::Metadata metadata = CommandRunnerTest::createMetada();
   Future<Try<string>> output =
       CommandRunner(false, metadata)
-          .run(Command(g_resourcesPath + "force_kill.sh", 2), "");
-  AWAIT_ASSERT_READY_FOR(output, Seconds(40000));
-  EXPECT_ERROR(output.get());
+          .asyncRun(Command(g_resourcesPath + "force_kill.sh", 1), "");
+  AWAIT_ASSERT_READY_FOR(output, Seconds(4000));
+  os::sleep(Milliseconds(100));
+  EXPECT_PROCESS_EXITED("/tmp/force_kill.pid");
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
