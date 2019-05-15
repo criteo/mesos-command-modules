@@ -97,7 +97,7 @@ inline static bool processStillRunning(pid_t pid) {
  *
  * TODO(clems4ever): split this method so that it becomes easier to read.
  *
- * @param executable Absolute path to the executed of rhe command to execute in
+ * @param executable Absolute path to the executed of the command to execute in
  * the child process.
  * @param timeout The timeout deadline in seconds before killing the
  * child process.
