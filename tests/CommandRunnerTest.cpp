@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <process/gtest.hpp>
 
 #include "CommandRunner.hpp"
 #include "gtest_helpers.hpp"
@@ -10,6 +11,7 @@
 using std::string;
 
 using namespace criteo::mesos;
+using namespace process;
 
 extern string g_resourcesPath;
 
@@ -37,28 +39,45 @@ TEST_F(CommandRunnerTest, should_run_a_simple_sh_command_and_get_the_output) {
   EXPECT_EQ(output.get(), "HELLO > output");
 }
 
-TEST_F(CommandRunnerTest, should_SIGTERM_inifinite_loop_command) {
-  TEST_TIMEOUT_BEGIN
-  logging::Metadata metadata = CommandRunnerTest::createMetada();
+TEST_F(CommandRunnerTest, should_not_capture_stdout) {
   Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "infinite_loop.sh", 2), "");
-  EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(4000)
+      m_commandRunner->run(Command(g_resourcesPath + "echo_stdout.sh", 10), "HELLO");
+  EXPECT_TRUE(output.get().empty());
 }
 
-TEST_F(CommandRunnerTest, should_force_SIGKILL_inifinite_loop_command) {
-  TEST_TIMEOUT_BEGIN
+TEST_F(CommandRunnerTest, should_SIGTERM_infinite_loop_command) {
   logging::Metadata metadata = CommandRunnerTest::createMetada();
-  Try<string> output =
-      CommandRunner(false, metadata).run(Command(g_resourcesPath + "force_kill.sh", 2), "");
-  EXPECT_ERROR(output);
-  TEST_TIMEOUT_FAIL_END(40000)
+  Future<Try<string>> output =
+      CommandRunner(false, metadata).asyncRun(Command(g_resourcesPath + "infinite_loop.sh", 1), "");
+  AWAIT_ASSERT_FAILED_FOR(output, Seconds(4000));
+  os::sleep(Milliseconds(100));
+  EXPECT_PROCESS_EXITED("/tmp/infinite_loop.pid");
+}
+
+TEST_F(CommandRunnerTest, should_force_SIGKILL_infinite_loop_command) {
+  logging::Metadata metadata = CommandRunnerTest::createMetada();
+  Future<Try<string>> output =
+      CommandRunner(false, metadata)
+          .asyncRun(Command(g_resourcesPath + "force_kill.sh", 1), "");
+  AWAIT_ASSERT_FAILED_FOR(output, Seconds(4000));
+  os::sleep(Milliseconds(100));
+  EXPECT_PROCESS_EXITED("/tmp/force_kill.pid");
 }
 
 TEST_F(CommandRunnerTest, should_not_crash_when_child_throws) {
-  EXPECT_ERROR(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""));
-  EXPECT_ERROR_MESSAGE(m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), ""),
-                       std::regex("Command \".*throw.sh\" exited with return code 1."));
+  Try<string> output =
+      m_commandRunner->run(Command(g_resourcesPath + "throw.sh", 10), "");
+  EXPECT_ERROR(output);
+  EXPECT_ERROR_MESSAGE(
+      output, std::regex("Command \".*throw.sh\" exited with return code 1."));
+}
+
+TEST_F(CommandRunnerTest, should_not_crash_when_killed_by_signal) {
+  Try<string> output =
+      m_commandRunner->run(Command(g_resourcesPath + "autokill.sh", 10), "");
+  EXPECT_ERROR(output);
+  EXPECT_ERROR_MESSAGE(
+      output, std::regex("Command \".*autokill.sh\" exited via signal 15."));
 }
 
 TEST_F(CommandRunnerTest, should_not_return_error_when_script_works) {

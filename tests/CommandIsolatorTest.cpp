@@ -20,7 +20,7 @@ class CommandIsolatorTest : public ::testing::Test {
   void SetUp() {
     isolator.reset(
         new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
-                            Command(g_resourcesPath + "watch.sh"),
+                            Command(g_resourcesPath + "watch.sh", 3),
                             Command(g_resourcesPath + "cleanup.sh"),
                             Command(g_resourcesPath + "usage.sh")));
     containerId.set_value("container_id");
@@ -228,4 +228,30 @@ TEST_F(EmptyOutputCommandIsolatorTest,
        should_run_watch_command_and_do_nothing_on_empty_output) {
   auto future = isolator->watch(containerId);
   AWAIT_ASSERT_ABANDONED(future);
+}
+
+TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage) {
+  auto stats = isolator->usage(containerId);
+  AWAIT_READY(stats);
+  EXPECT_EQ(0, stats.get().cpus_system_time_secs());
+  EXPECT_TRUE(stats.get().has_timestamp());
+}
+
+class TimeoutCommandIsolatorTest : public CommandIsolatorTest {
+ public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(new CommandIsolator(
+        None(), None(), None(),
+        Command(g_resourcesPath + "usage_timeout.sh", 1)
+        ));
+  }
+  std::unique_ptr<CommandIsolator> isolator;
+};
+
+TEST_F(TimeoutCommandIsolatorTest, should_return_empty_stats_on_usage_timeout) {
+  auto stats = isolator->usage(containerId);
+  AWAIT_ASSERT_READY_FOR(stats, Seconds(4));
+  EXPECT_EQ(0, stats.get().cpus_system_time_secs());
+  EXPECT_TRUE(stats.get().has_timestamp());
 }

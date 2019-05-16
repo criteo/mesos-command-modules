@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include <process/future.hpp>
 #include <stout/try.hpp>
 
 #include "Command.hpp"
@@ -39,8 +40,28 @@ class CommandRunner {
    *
    * @return The output of the command retrieved from the temporary file.
    */
+  /* Try<std::string> run(const Command& command, */
   Try<std::string> run(const Command& command,
                        const std::string& serializedInput);
+
+  /**
+   * Run a command asynchonously.
+   * This method leverages libprocess primitives to avoid blocking unnecessarily
+   * while waiting for the command's output.
+   *
+   * The command must exit in less than the timeout given as parameter,
+   * otherwise the process receives a SIGTERM and then a SIGKILL if it still has
+   * not exited. SIGKILL is sent one second after the end of the timeout if the
+   * process is still running after SIGTERM.
+   *
+   * @param command The command to run.
+   * @param serializedInput The serialized input passed to the command through
+   *   the temporary file.
+   *
+   * @return Future on the output of the command
+   */
+  process::Future<Try<std::string>> asyncRun(
+      const Command& command, const std::string& serializedInput);
 
  private:
   bool m_debug;
