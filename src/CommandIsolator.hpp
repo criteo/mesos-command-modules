@@ -54,6 +54,15 @@ class CommandIsolator : public ::mesos::slave::Isolator {
   virtual ~CommandIsolator();
 
   /**
+   * return true to support to support nested containers (especially in task
+   * groupd)
+   */
+  virtual bool supportsNesting()
+  {
+    return true;
+  }
+
+  /**
    * Run an external command on prepare phase of a new container.
    * If any execution needs to be done in the containerized context, it can
    * be returned in the optional CommandInfo of ContainerLaunchInfo.
