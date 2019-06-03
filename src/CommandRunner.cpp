@@ -37,6 +37,7 @@
 namespace criteo {
 namespace mesos {
 
+using std::ostream;
 using std::string;
 using std::vector;
 using namespace std::chrono;
@@ -82,6 +83,11 @@ class TemporaryFile {
   }
 
   inline const std::string& filepath() const { return m_filepath; }
+
+  friend ostream& operator<<(ostream& out, const TemporaryFile& temp_file) {
+    out << temp_file.m_filepath;
+    return out;
+  }
 
  private:
   std::string m_filepath;
@@ -214,7 +220,11 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
           }
           return os::read(outputFile.filepath());
         })
-        .onAny([&](Future<Try<string>> output) -> Future<Try<string>> {
+        .onAny([=, loggingMetadata = m_loggingMetadata](
+                   Future<Try<string>> output) -> Future<Try<string>> {
+          TASK_LOG(INFO, loggingMetadata)
+              << "Removing temp files " << inputFile << " " << outputFile << " "
+              << errorFile;
           os::rm(inputFile.filepath());
           os::rm(outputFile.filepath());
           os::rm(errorFile.filepath());
