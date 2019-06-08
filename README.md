@@ -2,14 +2,14 @@
 
 [![Build Status](https://api.travis-ci.org/criteo/mesos-command-modules.svg?branch=master)](https://travis-ci.org/criteo/mesos-command-modules)
 
-This repository is a collection of **experimental** mesos modules
+This repository is a collection of mesos modules
 delegating the events to external commands.
 
 Here is the list of supported modules:
 - Hook (all methods)
-- Isolator (prepare and cleanup methods only)
+- Isolator (prepare, cleanup, watch, usage methods)
 
-Warning: this project is not battle-tested yet, use it at your own risk.
+Warning: this project is not battle-tested yet, use it at your own risk (although it has run on production in Criteo for >1y).
 
 ## Getting Started
 
@@ -131,7 +131,6 @@ so trivial (see the tests).
 
 ## TODO
 
-* Implement all methods of the isolator interface
 * Add tests to check the behavior of the CommandRunner when temporary files are
   manually deleted when a script is running.
 * Automate integration tests using docker-compose in examples/ to execute it in
