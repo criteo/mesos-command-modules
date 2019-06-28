@@ -222,9 +222,10 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
         })
         .onAny([=, loggingMetadata = m_loggingMetadata](
                    Future<Try<string>> output) -> Future<Try<string>> {
-          TASK_LOG(INFO, loggingMetadata)
-              << "Removing temp files " << inputFile << " " << outputFile << " "
-              << errorFile;
+          if (m_debug)
+            TASK_LOG(INFO, loggingMetadata)
+                << "Removing temp files " << inputFile << " " << outputFile
+                << " " << errorFile;
           os::rm(inputFile.filepath());
           os::rm(outputFile.filepath());
           os::rm(errorFile.filepath());
