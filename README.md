@@ -92,6 +92,8 @@ Then, restart the Mesos slaves to complete the installation and have a
 look at the logs to confirm that your scripts are called when some of your
 configured events are triggered.
 
+Note: com_criteo_mesos_CommandIsolator2, com_criteo_mesos_CommandIsolator3, ... are also defined to allow to have several distinct isolators.
+
 ## Build Instructions
 
 ```shell
