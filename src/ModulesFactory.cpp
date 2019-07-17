@@ -30,9 +30,37 @@ using std::string;
 mesos::modules::Module<::mesos::Hook> com_criteo_mesos_CommandHook(
     MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos", "mesos@criteo.com",
     "Command hook module", nullptr, criteo::mesos::createHook);
+// Mesos does not accept to instanciate several instances of the same module
+// so we create multiple instances named com_criteo_mesos_CommandHook2,3,..
+// to allow user to have separated isolator based on CommandHook
+#define CRITEO_HOOK(INSTANCE)                                      \
+  mesos::modules::Module<::mesos::Hook>                            \
+      com_criteo_mesos_CommandHook##INSTANCE(                      \
+          MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos", \
+          "mesos@criteo.com", "Command hook module", nullptr,      \
+          criteo::mesos::createHook);
+
+CRITEO_HOOK(2)
+CRITEO_HOOK(3)
+CRITEO_HOOK(4)
+CRITEO_HOOK(5)
 
 mesos::modules::Module<::mesos::slave::Isolator>
     com_criteo_mesos_CommandIsolator(MESOS_MODULE_API_VERSION, MESOS_VERSION,
                                      "Criteo Mesos", "mesos@criteo.com",
                                      "Command isolator module", nullptr,
                                      criteo::mesos::createIsolator);
+// Mesos does not accept to instanciate several instances of the same module
+// so we create multiple instances named com_criteo_mesos_CommandIsolator2,3,..
+// to allow user to have separated isolator based on CommandIsolator
+#define CRITEO_ISOLATOR(INSTANCE)                                  \
+  mesos::modules::Module<::mesos::slave::Isolator>                 \
+      com_criteo_mesos_CommandIsolator##INSTANCE(                  \
+          MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos", \
+          "mesos@criteo.com", "Command isolator module", nullptr,  \
+          criteo::mesos::createIsolator);
+
+CRITEO_ISOLATOR(2)
+CRITEO_ISOLATOR(3)
+CRITEO_ISOLATOR(4)
+CRITEO_ISOLATOR(5)
