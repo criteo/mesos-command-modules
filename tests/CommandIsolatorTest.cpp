@@ -255,3 +255,22 @@ TEST_F(TimeoutCommandIsolatorTest, should_return_empty_stats_on_usage_timeout) {
   EXPECT_EQ(0, stats.get().cpus_system_time_secs());
   EXPECT_TRUE(stats.get().has_timestamp());
 }
+
+class LongCommandIsolatorTest : public CommandIsolatorTest {
+ public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(new CommandIsolator(
+        None(), None(), None(),
+        Command(g_resourcesPath + "usage_long.sh", 1)
+        ));
+  }
+  std::unique_ptr<CommandIsolator> isolator;
+};
+
+TEST_F(LongCommandIsolatorTest,
+       should_run_usage_command_and_does_not_crash_if_discarded) {
+  auto future = isolator->usage(containerId);
+  future.discard();
+  AWAIT_ASSERT_READY_FOR(future, Seconds(3));
+}

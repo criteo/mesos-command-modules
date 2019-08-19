@@ -173,7 +173,7 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
       })
       .recover([now=now](const Future<::mesos::ResourceStatistics>& result)
                    -> Future<::mesos::ResourceStatistics> {
-        LOG(WARNING) << "Failed to run usage command: " << result.failure();
+        LOG(WARNING) << "Failed to run usage command: " << result;
         return emptyStats(now);
       });
 }
