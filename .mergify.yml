@@ -1,0 +1,16 @@
+pull_request_rules:
+  - name: remove outdated reviews
+    conditions:
+      - base=master
+    actions:
+      dismiss_reviews: {}
+  - name: automatic merge on CI success and review
+    conditions:
+      - status-success=continuous-integration/travis-ci/pr
+      - "#approved-reviews-by>=1"
+      - base=master
+      - "#changes-requested-reviews-by=0"
+      - label=ready-to-submit
+    actions:
+      merge:
+        method: merge
