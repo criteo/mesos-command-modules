@@ -160,8 +160,8 @@ Future<Try<bool>> runCommandWithTimeout(
             Try<std::list<os::ProcessTree>> kill =
                 os::killtree(process.pid(), SIGTERM);
             if (kill.isError()) {
-              TASK_LOG(ERROR, loggingMetadata)
-                  << "Failed to send SIGTERM: " << kill.error();
+              TASK_LOG(ERROR, loggingMetadata) << "Failed to send SIGTERM: "
+                                               << kill.error();
             }
             return after(Seconds(1)).then([=]() -> Future<Try<bool>> {
               if (processStillRunning(process.pid())) {
@@ -201,9 +201,9 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
           << command.timeout() << "s) " << inputFile.filepath() << " "
           << outputFile.filepath() << " " << errorFile.filepath();
     } else {
-      TASK_LOG(INFO, m_loggingMetadata)
-          << "Calling command: \"" << command.command() << "\" ("
-          << command.timeout() << "s)";
+      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \""
+                                        << command.command() << "\" ("
+                                        << command.timeout() << "s)";
     }
 
     vector<string> args = {inputFile.filepath(), outputFile.filepath(),
@@ -220,17 +220,18 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
           }
           return os::read(outputFile.filepath());
         })
-        .onAny([=, loggingMetadata = m_loggingMetadata](
-                   Future<Try<string>> output) -> Future<Try<string>> {
-          if (m_debug)
-            TASK_LOG(INFO, loggingMetadata)
-                << "Removing temp files " << inputFile << " " << outputFile
-                << " " << errorFile;
-          os::rm(inputFile.filepath());
-          os::rm(outputFile.filepath());
-          os::rm(errorFile.filepath());
-          return output;
-        });
+        .onAny([ =, loggingMetadata =
+                        m_loggingMetadata ](Future<Try<string>> output)
+                   ->Future<Try<string>> {
+                     if (m_debug)
+                       TASK_LOG(INFO, loggingMetadata)
+                           << "Removing temp files " << inputFile << " "
+                           << outputFile << " " << errorFile;
+                     os::rm(inputFile.filepath());
+                     os::rm(outputFile.filepath());
+                     os::rm(errorFile.filepath());
+                     return output;
+                   });
   } catch (const std::runtime_error& e) {
     if (m_debug) {
       return Error("[DEBUG] " + string(e.what()) + ". Input was \"" + input +

@@ -49,7 +49,8 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   }
 
  private:
-  inline static ::mesos::ResourceStatistics emptyStats(double timestamp = Clock::now().secs()) {
+  inline static ::mesos::ResourceStatistics emptyStats(
+      double timestamp = Clock::now().secs()) {
     ::mesos::ResourceStatistics stats;
     stats.set_timestamp(timestamp);
     return stats;
@@ -152,30 +153,32 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 
   return CommandRunner(m_isDebugMode, metadata)
       .asyncRun(m_usageCommand.get(), stringify(inputsJson))
-      .then([now=now](Try<string> output) -> Future<::mesos::ResourceStatistics> {
-        if (output.isError()) {
-          LOG(WARNING) << "Unable to parse output: " << output.error();
-          return emptyStats(now);
-        }
-        if (output->empty()) {
-          LOG(WARNING) << "Output is empty";
-          return emptyStats(now);
-        }
-        Result<::mesos::ResourceStatistics> resourceStatistics =
-            jsonToProtobuf<::mesos::ResourceStatistics>(output.get());
+      .then([now = now](Try<string> output)
+                ->Future<::mesos::ResourceStatistics> {
+                  if (output.isError()) {
+                    LOG(WARNING) << "Unable to parse output: "
+                                 << output.error();
+                    return emptyStats(now);
+                  }
+                  if (output->empty()) {
+                    LOG(WARNING) << "Output is empty";
+                    return emptyStats(now);
+                  }
+                  Result<::mesos::ResourceStatistics> resourceStatistics =
+                      jsonToProtobuf<::mesos::ResourceStatistics>(output.get());
 
-        if (resourceStatistics.isError()) {
-          LOG(WARNING) << "Unable to deserialize ResourceStatistics: "
-                       << resourceStatistics.error();
-          return emptyStats(now);
-        }
-        return resourceStatistics.get();
-      })
-      .recover([now=now](const Future<::mesos::ResourceStatistics>& result)
-                   -> Future<::mesos::ResourceStatistics> {
-        LOG(WARNING) << "Failed to run usage command: " << result.failure();
-        return emptyStats(now);
-      });
+                  if (resourceStatistics.isError()) {
+                    LOG(WARNING) << "Unable to deserialize ResourceStatistics: "
+                                 << resourceStatistics.error();
+                    return emptyStats(now);
+                  }
+                  return resourceStatistics.get();
+                })
+      .recover([now = now](const Future<::mesos::ResourceStatistics>& result)
+                   ->Future<::mesos::ResourceStatistics> {
+                     LOG(WARNING) << "Failed to run usage command: " << result;
+                     return emptyStats(now);
+                   });
 }
 
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
