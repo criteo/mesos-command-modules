@@ -5,4 +5,4 @@ services:
 
 script:
   - docker build -t criteo/mesos-command-modules .
-  - docker run -v $(pwd):/src/mesos-command-modules criteo/mesos-command-modules /bin/bash -c '/src/mesos-command-modules/scripts/travis.sh'
+  - docker run -v $(pwd):/src/mesos-command-modules criteo/mesos-command-modules
