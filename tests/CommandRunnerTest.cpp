@@ -1,6 +1,3 @@
-#include <gtest/gtest.h>
-#include <process/gtest.hpp>
-
 #include "CommandRunner.hpp"
 #include "gtest_helpers.hpp"
 

@@ -1,4 +1,5 @@
 #include "CommandIsolator.hpp"
+#include "gtest_helpers.hpp"
 
 #include <gtest/gtest.h>
 #include <process/gtest.hpp>
@@ -95,7 +96,8 @@ TEST_F(UnexistingCommandIsolatorTest,
 TEST_F(UnexistingCommandIsolatorTest,
        should_try_to_run_watch_command_and_fail) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  future.discard();
 }
 
 TEST_F(UnexistingCommandIsolatorTest,
@@ -127,7 +129,8 @@ TEST_F(MalformedCommandIsolatorTest,
 TEST_F(MalformedCommandIsolatorTest,
        should_run_watch_command_and_handle_malformed_output_json) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  future.discard();
 }
 
 TEST_F(MalformedCommandIsolatorTest,
@@ -159,7 +162,8 @@ TEST_F(
 TEST_F(EmptyCommandIsolatorTest,
        should_resolve_promise_when_watch_command_is_empty) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  future.discard();
 }
 
 TEST_F(EmptyCommandIsolatorTest,
@@ -200,7 +204,8 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
 TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_watch_command_and_handle_incorrect_protobuf_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  future.discard();
 }
 
 TEST_F(IncorrectProtobufCommandIsolatorTest,
@@ -227,7 +232,8 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
 TEST_F(EmptyOutputCommandIsolatorTest,
        should_run_watch_command_and_do_nothing_on_empty_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  future.discard();
 }
 
 TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage) {

@@ -5,8 +5,10 @@
 
 #include <glog/logging.h>
 #include <process/dispatch.hpp>
+#include <process/loop.hpp>
 #include <process/process.hpp>
 #include <process/time.hpp>
+#include <stout/os.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -19,8 +21,12 @@ using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
 using ::mesos::slave::ContainerLimitation;
 
+using process::Break;
+using process::Continue;
+using process::ControlFlow;
 using process::Failure;
 using process::Future;
+using process::loop;
 
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
@@ -117,27 +123,38 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
-  Try<string> output = CommandRunner(m_isDebugMode, metadata)
-                           .run(m_watchCommand.get(), stringify(inputsJson));
+  std::string inputStringified = stringify(inputsJson);
+  Command command = m_watchCommand.get();
 
-  if (output.isError()) {
-    LOG(WARNING) << "Unable to parse output: " << output.error();
-    return process::Future<ContainerLimitation>();
-  }
+  return loop(
+      [this, metadata, inputStringified, command]() {
+        Try<string> output = CommandRunner(m_isDebugMode, metadata)
+                                 .run(command, inputStringified);
+        return output;
+      },
+      [this, command](Try<string> output) -> ControlFlow<ContainerLimitation> {
+        try {
+          if (output.isError())
+            throw std::runtime_error("Unable to parse output: " +
+                                     output.error());
 
-  if (output->empty()) {
-    return process::Future<ContainerLimitation>();
-  }
+          if (output->empty()) throw std::runtime_error("");
 
-  Result<ContainerLimitation> containerLimitation =
-      jsonToProtobuf<ContainerLimitation>(output.get());
+          Result<ContainerLimitation> containerLimitation =
+              jsonToProtobuf<ContainerLimitation>(output.get());
 
-  if (containerLimitation.isError()) {
-    LOG(WARNING) << "Unable to deserialize ContainerLimitation: "
-                 << containerLimitation.error();
-    return process::Future<ContainerLimitation>();
-  }
-  return containerLimitation.get();
+          if (containerLimitation.isError())
+            throw std::runtime_error(
+                "Unable to deserialize ContainerLimitation: " +
+                containerLimitation.error());
+
+          return Break(containerLimitation.get());
+        } catch (const std::runtime_error& e) {
+          if (e.what()) LOG(WARNING) << e.what();
+          os::sleep(Seconds(command.frequence()));
+          return Continue();
+        }
+      });
 }
 
 process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(

@@ -50,11 +50,17 @@ Option<Command> extractCommand(const map<string, string>& kv,
     Command command = Command(cmd);
 
     string timeoutStr = getOrEmpty(kv, commandKey + "_timeout");
-    if (timeoutStr.empty()) {
-      return Option<Command>(command);
+    if (!timeoutStr.empty()) {
+      unsigned long timeout = stoul(timeoutStr);
+      command.setTimeout(timeout);
     }
-    unsigned long timeout = stoul(timeoutStr);
-    command.setTimeout(timeout);
+
+    string frequenceStr = getOrEmpty(kv, commandKey + "_frequence");
+    if (!frequenceStr.empty()) {
+      unsigned long frequence = stoul(frequenceStr);
+      command.setFrequence(frequence);
+    }
+
     return Option<Command>(command);
   }
   return Option<Command>();

@@ -33,6 +33,13 @@ TEST(ConfigurationParserTest, should_create_configuration) {
   var->set_value("command_cleanup");
 
   var = parameters.add_parameter();
+  var->set_key("isolator_watch_command");
+  var->set_value("command_watch");
+  var = parameters.add_parameter();
+  var->set_key("isolator_watch_frequence");
+  var->set_value("10");
+
+  var = parameters.add_parameter();
   var->set_key("debug");
   var->set_value("true");
 
@@ -44,6 +51,7 @@ TEST(ConfigurationParserTest, should_create_configuration) {
 
   EXPECT_EQ(cfg.prepareCommand, Command("command_prepare", 20));
   EXPECT_EQ(cfg.cleanupCommand, Command("command_cleanup", 30));
+  EXPECT_EQ(cfg.watchCommand, Command("command_watch", 30, 10));
 
   EXPECT_TRUE(cfg.isDebugSet);
 }
@@ -62,7 +70,7 @@ TEST(ConfigurationParserTest, should_create_configuration_with_optional_params) 
   Configuration cfg = ConfigurationParser::parse(parameters);
 
   EXPECT_TRUE(cfg.slaveRunTaskLabelDecoratorCommand.isNone());
-  EXPECT_EQ(cfg.slaveExecutorEnvironmentDecoratorCommand, Command("command_slave_executor_environment_decorator", 30));
+  EXPECT_EQ(cfg.slaveExecutorEnvironmentDecoratorCommand, Command("command_slave_executor_environment_decorator", 30, 30));
   EXPECT_TRUE(cfg.slaveRemoveExecutorHookCommand.isNone());
 
   EXPECT_TRUE(cfg.prepareCommand.isNone());
