@@ -1,17 +1,14 @@
-#!/bin/bash
+#! /bin/sh
 
-set +e
-set +x
+set -e -x
 
-cd src/mesos-command-modules
-
-mkdir build
+mkdir -p build
 cd build
 
 cmake ..
 make clang-format
 
-updated_files_count=`git diff --name-only | wc -l`
+updated_files_count=$(git diff --name-only | wc -l)
 
 if [ -n "$TRAVIS" ]; then
   if [ "$updated_files_count" -ne "0" ]; then
