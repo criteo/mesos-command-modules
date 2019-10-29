@@ -43,7 +43,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    *   otherwise logs nothing
    */
   explicit CommandIsolator(const Option<Command>& prepareCommand,
-                           const Option<Command>& watchCommand,
+                           const Option<RecurrentCommand>& watchCommand,
                            const Option<Command>& cleanupCommand,
                            const Option<Command>& usageCommand,
                            bool isDebugMode = false);

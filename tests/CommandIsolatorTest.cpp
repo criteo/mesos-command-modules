@@ -96,7 +96,7 @@ TEST_F(UnexistingCommandIsolatorTest,
 TEST_F(UnexistingCommandIsolatorTest,
        should_try_to_run_watch_command_and_fail) {
   auto future = isolator->watch(containerId);
-  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
   future.discard();
 }
 
@@ -112,7 +112,7 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
         Command(g_resourcesPath + "prepare_malformed.sh"),
-        Command(g_resourcesPath + "watch_malformed.sh"),
+        RecurrentCommand(g_resourcesPath + "watch_malformed.sh", 1, 0.3),
         None(),
         Command(g_resourcesPath + "usage_malformed.sh")
         ));
@@ -129,7 +129,7 @@ TEST_F(MalformedCommandIsolatorTest,
 TEST_F(MalformedCommandIsolatorTest,
        should_run_watch_command_and_handle_malformed_output_json) {
   auto future = isolator->watch(containerId);
-  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
   future.discard();
 }
 
@@ -162,7 +162,7 @@ TEST_F(
 TEST_F(EmptyCommandIsolatorTest,
        should_resolve_promise_when_watch_command_is_empty) {
   auto future = isolator->watch(containerId);
-  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
   future.discard();
 }
 
@@ -204,7 +204,7 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
 TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_watch_command_and_handle_incorrect_protobuf_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
   future.discard();
 }
 
@@ -232,7 +232,7 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
 TEST_F(EmptyOutputCommandIsolatorTest,
        should_run_watch_command_and_do_nothing_on_empty_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_EXPECT_PENDING_FOR(future, Seconds(5));
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
   future.discard();
 }
 

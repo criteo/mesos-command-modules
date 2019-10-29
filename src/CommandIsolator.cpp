@@ -31,7 +31,7 @@ using process::loop;
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
   CommandIsolatorProcess(const Option<Command>& prepareCommand,
-                         const Option<Command>& watchCommand,
+                         const Option<RecurrentCommand>& watchCommand,
                          const Option<Command>& cleanupCommand,
                          const Option<Command>& usageCommand, bool isDebugMode);
 
@@ -63,14 +63,15 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   }
 
   Option<Command> m_prepareCommand;
-  Option<Command> m_watchCommand;
+  Option<RecurrentCommand> m_watchCommand;
   Option<Command> m_cleanupCommand;
   Option<Command> m_usageCommand;
   bool m_isDebugMode;
 };
 
 CommandIsolatorProcess::CommandIsolatorProcess(
-    const Option<Command>& prepareCommand, const Option<Command>& watchCommand,
+    const Option<Command>& prepareCommand,
+    const Option<RecurrentCommand>& watchCommand,
     const Option<Command>& cleanupCommand, const Option<Command>& usageCommand,
     bool isDebugMode)
     : m_prepareCommand(prepareCommand),
@@ -124,7 +125,7 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
   std::string inputStringified = stringify(inputsJson);
-  Command command = m_watchCommand.get();
+  RecurrentCommand command = m_watchCommand.get();
 
   return loop(
       [this, metadata, inputStringified, command]() {
@@ -220,7 +221,7 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
 }
 
 CommandIsolator::CommandIsolator(const Option<Command>& prepareCommand,
-                                 const Option<Command>& watchCommand,
+                                 const Option<RecurrentCommand>& watchCommand,
                                  const Option<Command>& cleanupCommand,
                                  const Option<Command>& usageCommand,
                                  bool isDebugMode)

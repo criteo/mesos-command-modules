@@ -51,7 +51,7 @@ TEST(ConfigurationParserTest, should_create_configuration) {
 
   EXPECT_EQ(cfg.prepareCommand, Command("command_prepare", 20));
   EXPECT_EQ(cfg.cleanupCommand, Command("command_cleanup", 30));
-  EXPECT_EQ(cfg.watchCommand, Command("command_watch", 30, 10));
+  EXPECT_EQ(cfg.watchCommand, RecurrentCommand("command_watch", 30, 10));
 
   EXPECT_TRUE(cfg.isDebugSet);
 }
@@ -70,7 +70,7 @@ TEST(ConfigurationParserTest, should_create_configuration_with_optional_params) 
   Configuration cfg = ConfigurationParser::parse(parameters);
 
   EXPECT_TRUE(cfg.slaveRunTaskLabelDecoratorCommand.isNone());
-  EXPECT_EQ(cfg.slaveExecutorEnvironmentDecoratorCommand, Command("command_slave_executor_environment_decorator", 30, 30));
+  EXPECT_EQ(cfg.slaveExecutorEnvironmentDecoratorCommand, Command("command_slave_executor_environment_decorator", 30));
   EXPECT_TRUE(cfg.slaveRemoveExecutorHookCommand.isNone());
 
   EXPECT_TRUE(cfg.prepareCommand.isNone());
