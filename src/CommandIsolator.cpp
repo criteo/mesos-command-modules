@@ -126,14 +126,15 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
 
   std::string inputStringified = stringify(inputsJson);
   RecurrentCommand command = m_watchCommand.get();
+  bool isDebugMode = m_isDebugMode;
 
   return loop(
-      [this, metadata, inputStringified, command]() {
-        Try<string> output = CommandRunner(m_isDebugMode, metadata)
-                                 .run(command, inputStringified);
+      [isDebugMode, metadata, inputStringified, command]() {
+        Try<string> output =
+            CommandRunner(isDebugMode, metadata).run(command, inputStringified);
         return output;
       },
-      [this, command](Try<string> output) -> ControlFlow<ContainerLimitation> {
+      [command](Try<string> output) -> ControlFlow<ContainerLimitation> {
         try {
           if (output.isError())
             throw std::runtime_error("Unable to parse output: " +
