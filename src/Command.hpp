@@ -40,13 +40,6 @@ class RecurrentCommand : public Command {
  public:
   explicit RecurrentCommand(const Command& command)
       : Command(command), m_frequence(DEFAULT_COMMAND_FREQUENCE) {}
-
-  explicit RecurrentCommand(const std::string& command)
-      : Command(command), m_frequence(DEFAULT_COMMAND_FREQUENCE) {}
-
-  RecurrentCommand(const std::string& command, unsigned long timeout)
-      : Command(command, timeout), m_frequence(DEFAULT_COMMAND_FREQUENCE) {}
-
   RecurrentCommand(const std::string& command, unsigned long timeout,
                    float frequence)
       : Command(command, timeout), m_frequence(frequence) {}
