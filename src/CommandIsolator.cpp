@@ -4,11 +4,11 @@
 #include "Logger.hpp"
 
 #include <glog/logging.h>
+#include <process/after.hpp>
 #include <process/dispatch.hpp>
 #include <process/loop.hpp>
 #include <process/process.hpp>
 #include <process/time.hpp>
-#include <stout/os.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -27,6 +27,7 @@ using process::ControlFlow;
 using process::Failure;
 using process::Future;
 using process::loop;
+using process::after;
 
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
@@ -128,13 +129,17 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   RecurrentCommand command = m_watchCommand.get();
   bool isDebugMode = m_isDebugMode;
 
-  return loop(
+  process::UPID proc = spawn(new process::ProcessBase(), false);
+
+  Future<ContainerLimitation> future = loop(
+      proc,
       [isDebugMode, metadata, inputStringified, command]() {
         Try<string> output =
             CommandRunner(isDebugMode, metadata).run(command, inputStringified);
         return output;
       },
-      [command](Try<string> output) -> ControlFlow<ContainerLimitation> {
+      [command](
+          Try<string> output) -> Future<ControlFlow<ContainerLimitation>> {
         try {
           if (output.isError())
             throw std::runtime_error("Unable to parse output: " +
@@ -153,10 +158,16 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
           return Break(containerLimitation.get());
         } catch (const std::runtime_error& e) {
           if (e.what()) LOG(WARNING) << e.what();
-          os::sleep(Seconds(command.frequence()));
-          return Continue();
+          return after(Seconds(command.frequence()))
+              .then([]() -> process::ControlFlow<ContainerLimitation> {
+                return process::Continue();
+              });
         }
       });
+
+  future.onDiscard([proc]() { terminate(proc); });
+
+  return future;
 }
 
 process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
