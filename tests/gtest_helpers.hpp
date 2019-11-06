@@ -2,6 +2,8 @@
 #define __GTEST_HELPERS_HPP__
 
 #include <future>
+#include <gtest/gtest.h>
+#include <process/gtest.hpp>
 #include <regex>
 #include <stout/os.hpp>
 #include <stout/proc.hpp>
@@ -28,25 +30,24 @@
   EXPECT_TRUE(AssertRegexMatch(actual.error(), expectedMessage));
 
 ::testing::AssertionResult AssertRegexMatch(const std::string& actual,
-                                            const std::regex& expected) {
-  if (std::regex_match(actual, expected)) return ::testing::AssertionSuccess();
-  return ::testing::AssertionFailure()
-         << "\"" << actual << "\" doesn't match regex";
-}
+                                            const std::regex& expected);
 
 #define EXPECT_PROCESS_EXITED(pidfile) \
   EXPECT_TRUE(AssertProcessExited(pidfile));
 
-::testing::AssertionResult AssertProcessExited(const std::string& pidFile) {
-  Try<std::string> contents = os::read(pidFile);
-  if (contents.isError())
-    return ::testing::AssertionFailure()
-           << "can't read pid file \"" << pidFile << "\": " << contents.error();
-  pid_t pid = std::stoi(contents.get());
-  if (proc::status(pid).isSome())
-    return ::testing::AssertionFailure()
-           << "process " << pid << " is still running";
-  return ::testing::AssertionSuccess();
-}
+::testing::AssertionResult AssertProcessExited(const std::string& pidFile);
 
-#endif
+#define AWAIT_ASSERT_PENDING_FOR(actual, duration) \
+  ASSERT_PRED_FORMAT2(AwaitAssertPending, actual, duration)
+
+#define AWAIT_ASSERT_PENDING(actual) \
+  AWAIT_ASSERT_PENDING_FOR(actual, process::TEST_AWAIT_TIMEOUT)
+
+#define AWAIT_EXPECT_PENDING_FOR(actual, duration) \
+  EXPECT_PRED_FORMAT2(AwaitAssertPending, actual, duration)
+
+#define AWAIT_EXPECT_PENDING(actual) \
+  AWAIT_EXPECT_PENDING_FOR(actual, process::TEST_AWAIT_TIMEOUT)
+
+#include "gtest_helpers.hxx"
+#endif  // __GTEST_HELPERS_HPP__

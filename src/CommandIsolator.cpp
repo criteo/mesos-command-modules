@@ -4,7 +4,9 @@
 #include "Logger.hpp"
 
 #include <glog/logging.h>
+#include <process/after.hpp>
 #include <process/dispatch.hpp>
+#include <process/loop.hpp>
 #include <process/process.hpp>
 #include <process/time.hpp>
 
@@ -19,13 +21,18 @@ using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
 using ::mesos::slave::ContainerLimitation;
 
+using process::Break;
+using process::Continue;
+using process::ControlFlow;
 using process::Failure;
 using process::Future;
+using process::loop;
+using process::after;
 
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
   CommandIsolatorProcess(const Option<Command>& prepareCommand,
-                         const Option<Command>& watchCommand,
+                         const Option<RecurrentCommand>& watchCommand,
                          const Option<Command>& cleanupCommand,
                          const Option<Command>& usageCommand, bool isDebugMode);
 
@@ -57,14 +64,15 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   }
 
   Option<Command> m_prepareCommand;
-  Option<Command> m_watchCommand;
+  Option<RecurrentCommand> m_watchCommand;
   Option<Command> m_cleanupCommand;
   Option<Command> m_usageCommand;
   bool m_isDebugMode;
 };
 
 CommandIsolatorProcess::CommandIsolatorProcess(
-    const Option<Command>& prepareCommand, const Option<Command>& watchCommand,
+    const Option<Command>& prepareCommand,
+    const Option<RecurrentCommand>& watchCommand,
     const Option<Command>& cleanupCommand, const Option<Command>& usageCommand,
     bool isDebugMode)
     : m_prepareCommand(prepareCommand),
@@ -117,27 +125,49 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
 
-  Try<string> output = CommandRunner(m_isDebugMode, metadata)
-                           .run(m_watchCommand.get(), stringify(inputsJson));
+  std::string inputStringified = stringify(inputsJson);
+  RecurrentCommand command = m_watchCommand.get();
+  bool isDebugMode = m_isDebugMode;
 
-  if (output.isError()) {
-    LOG(WARNING) << "Unable to parse output: " << output.error();
-    return process::Future<ContainerLimitation>();
-  }
+  process::UPID proc = spawn(new process::ProcessBase(), false);
 
-  if (output->empty()) {
-    return process::Future<ContainerLimitation>();
-  }
+  Future<ContainerLimitation> future = loop(
+      proc,
+      [isDebugMode, metadata, inputStringified, command]() {
+        Try<string> output =
+            CommandRunner(isDebugMode, metadata).run(command, inputStringified);
+        return output;
+      },
+      [command](
+          Try<string> output) -> Future<ControlFlow<ContainerLimitation>> {
+        try {
+          if (output.isError())
+            throw std::runtime_error("Unable to parse output: " +
+                                     output.error());
 
-  Result<ContainerLimitation> containerLimitation =
-      jsonToProtobuf<ContainerLimitation>(output.get());
+          if (output->empty()) throw std::runtime_error("");
 
-  if (containerLimitation.isError()) {
-    LOG(WARNING) << "Unable to deserialize ContainerLimitation: "
-                 << containerLimitation.error();
-    return process::Future<ContainerLimitation>();
-  }
-  return containerLimitation.get();
+          Result<ContainerLimitation> containerLimitation =
+              jsonToProtobuf<ContainerLimitation>(output.get());
+
+          if (containerLimitation.isError())
+            throw std::runtime_error(
+                "Unable to deserialize ContainerLimitation: " +
+                containerLimitation.error());
+
+          return Break(containerLimitation.get());
+        } catch (const std::runtime_error& e) {
+          if (e.what()) LOG(WARNING) << e.what();
+          return after(Seconds(command.frequence()))
+              .then([]() -> process::ControlFlow<ContainerLimitation> {
+                return process::Continue();
+              });
+        }
+      });
+
+  future.onDiscard([proc]() { terminate(proc); });
+
+  return future;
 }
 
 process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
@@ -203,7 +233,7 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
 }
 
 CommandIsolator::CommandIsolator(const Option<Command>& prepareCommand,
-                                 const Option<Command>& watchCommand,
+                                 const Option<RecurrentCommand>& watchCommand,
                                  const Option<Command>& cleanupCommand,
                                  const Option<Command>& usageCommand,
                                  bool isDebugMode)

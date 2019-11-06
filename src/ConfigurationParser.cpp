@@ -50,14 +50,31 @@ Option<Command> extractCommand(const map<string, string>& kv,
     Command command = Command(cmd);
 
     string timeoutStr = getOrEmpty(kv, commandKey + "_timeout");
-    if (timeoutStr.empty()) {
-      return Option<Command>(command);
+    if (!timeoutStr.empty()) {
+      unsigned long timeout = stoul(timeoutStr);
+      command.setTimeout(timeout);
     }
-    unsigned long timeout = stoul(timeoutStr);
-    command.setTimeout(timeout);
+
     return Option<Command>(command);
   }
   return Option<Command>();
+}
+
+Option<RecurrentCommand> extractRecurrentCommand(
+    const map<string, string>& kv, const std::string& commandKey) {
+  Option<Command> baseCmd = extractCommand(kv, commandKey);
+
+  if (baseCmd.isNone()) return Option<RecurrentCommand>();
+
+  RecurrentCommand command = RecurrentCommand(baseCmd.get());
+
+  string frequenceStr = getOrEmpty(kv, commandKey + "_frequence");
+  if (!frequenceStr.empty()) {
+    unsigned long frequence = stoul(frequenceStr);
+    command.setFrequence(frequence);
+  }
+
+  return Option<RecurrentCommand>(command);
 }
 
 Configuration ConfigurationParser::parse(
@@ -73,7 +90,7 @@ Configuration ConfigurationParser::parse(
       extractCommand(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
 
   configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
-  configuration.watchCommand = extractCommand(p, WATCH_KEY);
+  configuration.watchCommand = extractRecurrentCommand(p, WATCH_KEY);
   configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
   configuration.usageCommand = extractCommand(p, USAGE_KEY);
 

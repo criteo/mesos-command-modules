@@ -9,6 +9,7 @@ namespace mesos {
 // This is the default value of the timeout if the user does not override it
 // in configuration.
 const unsigned long DEFAULT_COMMAND_TIMEOUT = 30;
+const float DEFAULT_COMMAND_FREQUENCE = 30;
 
 /**
  * @brief The Command class represents a command, i.e., a command to be run and
@@ -33,6 +34,26 @@ class Command {
  private:
   std::string m_cmd;
   unsigned long m_timeout;
+};
+
+class RecurrentCommand : public Command {
+ public:
+  explicit RecurrentCommand(const Command& command)
+      : Command(command), m_frequence(DEFAULT_COMMAND_FREQUENCE) {}
+  RecurrentCommand(const std::string& command, unsigned long timeout,
+                   float frequence)
+      : Command(command, timeout), m_frequence(frequence) {}
+
+  bool operator==(const RecurrentCommand& that) const {
+    return Command::operator==(that) && m_frequence == that.m_frequence;
+  }
+
+  inline float frequence() const { return m_frequence; }
+
+  void setFrequence(const float frequence) { m_frequence = frequence; }
+
+ private:
+  float m_frequence;
 };
 
 }  // namespace mesos

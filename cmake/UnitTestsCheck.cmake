@@ -4,6 +4,7 @@ set(TEST_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/CommandRunnerTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/ConfigurationParserTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/ModulesFactoryTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/gtest_helpers.cpp
   ${CMAKE_SOURCE_DIR}/tests/main.cpp
 )
 

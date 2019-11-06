@@ -1,4 +1,5 @@
 #include "CommandIsolator.hpp"
+#include "gtest_helpers.hpp"
 
 #include <gtest/gtest.h>
 #include <process/gtest.hpp>
@@ -20,7 +21,7 @@ class CommandIsolatorTest : public ::testing::Test {
   void SetUp() {
     isolator.reset(
         new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
-                            Command(g_resourcesPath + "watch.sh", 3),
+                            RecurrentCommand(g_resourcesPath + "watch.sh", 3, 0.1),
                             Command(g_resourcesPath + "cleanup.sh"),
                             Command(g_resourcesPath + "usage.sh")));
     containerId.set_value("container_id");
@@ -78,7 +79,7 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(Command("unexisting.sh"),
-                                       Command("unexisting.sh"),
+                                       RecurrentCommand("unexisting.sh", 1, 0.1),
                                        Command("unexisting.sh"),
                                        Command("unexisting.sh")
                                        ));
@@ -95,7 +96,8 @@ TEST_F(UnexistingCommandIsolatorTest,
 TEST_F(UnexistingCommandIsolatorTest,
        should_try_to_run_watch_command_and_fail) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
+  future.discard();
 }
 
 TEST_F(UnexistingCommandIsolatorTest,
@@ -110,7 +112,7 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
         Command(g_resourcesPath + "prepare_malformed.sh"),
-        Command(g_resourcesPath + "watch_malformed.sh"),
+        RecurrentCommand(g_resourcesPath + "watch_malformed.sh", 1, 0.3),
         None(),
         Command(g_resourcesPath + "usage_malformed.sh")
         ));
@@ -127,7 +129,8 @@ TEST_F(MalformedCommandIsolatorTest,
 TEST_F(MalformedCommandIsolatorTest,
        should_run_watch_command_and_handle_malformed_output_json) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
+  future.discard();
 }
 
 TEST_F(MalformedCommandIsolatorTest,
@@ -159,7 +162,8 @@ TEST_F(
 TEST_F(EmptyCommandIsolatorTest,
        should_resolve_promise_when_watch_command_is_empty) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
+  future.discard();
 }
 
 TEST_F(EmptyCommandIsolatorTest,
@@ -183,7 +187,7 @@ class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
         Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"),
-        g_resourcesPath + "watch_incorrect_protobuf.sh",
+        RecurrentCommand(g_resourcesPath + "watch_incorrect_protobuf.sh", 3, 0.1),
         None(),
         Command(g_resourcesPath + "usage_incorrect_protobuf.sh")
         ));
@@ -200,7 +204,8 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
 TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_watch_command_and_handle_incorrect_protobuf_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
+  future.discard();
 }
 
 TEST_F(IncorrectProtobufCommandIsolatorTest,
@@ -217,7 +222,7 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
-        None(), Command(g_resourcesPath + "watch_empty.sh"), None(),
+        None(), RecurrentCommand(g_resourcesPath + "watch_empty.sh", 3, 0.1), None(),
         Command(g_resourcesPath + "usage_empty.sh")
         ));
   }
@@ -227,7 +232,8 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
 TEST_F(EmptyOutputCommandIsolatorTest,
        should_run_watch_command_and_do_nothing_on_empty_output) {
   auto future = isolator->watch(containerId);
-  AWAIT_ASSERT_ABANDONED(future);
+  AWAIT_EXPECT_PENDING_FOR(future, Seconds(1));
+  future.discard();
 }
 
 TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage) {
