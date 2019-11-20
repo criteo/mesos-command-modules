@@ -17,5 +17,5 @@ if [ -n "$TRAVIS" ]; then
   fi
 fi
 
-make
+make -j "$(nproc)"
 TEST_RESOURCES_PATH=../tests/scripts/ make check

@@ -47,7 +47,7 @@ if(NOT MESOS_FOUND) # Assume build tree has not been installed yet
   set(
     MESOS_INCLUDE_DIRS ${MESOS_BUILD_DIR}/include ${MESOS_ROOT_DIR}/include
     )
-  set(MESOS_LIBRARY_DIRS ${MESOS_BUILD_DIR}/src/.libs)
+  set(MESOS_LIBRARY_DIRS ${MESOS_BUILD_DIR}/src/.libs ${MESOS_ROOT_DIR}/src/.libs)
   set(MESOS_LIBRARIES mesos)
 endif()
 

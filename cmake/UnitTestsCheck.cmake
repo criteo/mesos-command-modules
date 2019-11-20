@@ -21,20 +21,29 @@ target_include_directories(
 target_link_directories(
   ${TEST_BINARY_NAME}
 
-  PRIVATE ${GLOG_LIBRARY_DIRS}
-  PRIVATE ${GTEST_LIBRARY_DIRS}
   PRIVATE ${MESOS_BUILD_DIR}/3rdparty/libprocess/src/
+  PRIVATE ${MESOS_ROOT_DIR}/3rdparty/libprocess/.libs/
   PRIVATE ${MESOS_BUILD_DIR}/src/
-  PRIVATE ${PROTOBUF_LIBRARY_DIRS}
   )
+
+find_library(
+    MESOS-PROTOBUFS_LIBRARY
+    NAMES mesos-protobufs
+    HINTS ${MESOS_BUILD_DIR}/src/
+    NO_DEFAULT_PATH
+  )
+
+if(NOT MESOS-PROTOBUFS_LIBRARY)
+  unset(MESOS-PROTOBUFS_LIBRARY CACHE)
+endif()
 
 target_link_libraries(${TEST_BINARY_NAME}
   ${PROJECT_NAME}
-  glog
-  gmock
-  mesos-protobufs
+  ${GLOG_LIBRARY}
+  ${GTEST_LIBRARY}
+  ${PROTOBUF_LIBRARY}
+  ${MESOS-PROTOBUFS_LIBRARY}
   process
-  protobuf
   pthread
   )
 add_custom_target(check COMMAND "${TEST_BINARY_NAME}")
