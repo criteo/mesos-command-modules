@@ -1,9 +1,11 @@
 include(FindPackageHandleStandardArgs)
 
 function(SUBDIRLIST result input)
-  file(GLOB curdir ${input})
   set(res "")
-  list(APPEND dirlist ${curdir})
+  foreach(dir ${${input}})
+    file(GLOB curdir ${dir})
+    list(APPEND dirlist ${curdir})
+  endforeach()
 
   while(dirlist)
     list(GET dirlist 0 curdir)
@@ -21,38 +23,37 @@ endfunction()
 
 function(PACKAGE_FINDING_HELPER PACKAGE_NAME HEADER_FILE)
   unset(${PACKAGE_NAME}_INCLUDE_DIR CACHE)
-  unset(${PACKAGE_NAME}_LIBRARY_DIRS CACHE)
+  unset(${PACKAGE_NAME}_LIBRARY CACHE)
 
   find_path(
     ${PACKAGE_NAME}_INCLUDE_DIR
     ${HEADER_FILE}
-    HINTS ${${PACKAGE_NAME}_SRCH_DIRS})
+    HINTS ${${PACKAGE_NAME}_SRCH_DIRS}
+    NO_DEFAULT_PATH
+    )
 
-  foreach(LIBRARY_NAME ${${PACKAGE_NAME}_LIBRARY_NAMES})
-    unset(${PACKAGE_NAME}_LIB_PATH CACHE)
-
-    find_path(
-      ${PACKAGE_NAME}_LIB_PATH
-      ${${PACKAGE_NAME}_LIBRARY_NAMES}
-      HINTS ${${PACKAGE_NAME}_SRCH_DIRS}
-      )
+  if(DEFINED ${PACKAGE_NAME}_LIBRARY_NAMES)
+    find_library(
+      ${PACKAGE_NAME}_LIBRARY
+      NAMES ${${PACKAGE_NAME}_LIBRARY_NAMES}
+      PATHS ${${PACKAGE_NAME}_SRCH_DIRS}
+      NO_DEFAULT_PATH
+    )
 
     string(COMPARE NOTEQUAL
-      "${PACKAGE_NAME}_LIB_PATH-NOTFOUND"
-      ${${PACKAGE_NAME}_LIB_PATH}
+      "${PACKAGE_NAME}_LIBRARY-NOTFOUND"
+      ${${PACKAGE_NAME}_LIBRARY}
 
-      ${PACKAGE_NAME}_LIB_PATH_FOUND)
+      ${PACKAGE_NAME}_LIBRARY_FOUND)
 
-    if(NOT ${${PACKAGE_NAME}_LIB_PATH_FOUND})
-      message(FATAL_ERROR "Could not find ${LIBRARY_NAME}")
+    if(NOT ${${PACKAGE_NAME}_LIBRARY_FOUND})
+      message(FATAL_ERROR "Could not find ${${PACKAGE_NAME}_LIBRARY_NAMES}")
     endif()
-
-    list(APPEND ${PACKAGE_NAME}_LIBRARY_DIRS ${${PACKAGE_NAME}_LIB_PATH})
-  endforeach()
+  endif()
 
   list(APPEND ${PACKAGE_NAME}_REQUIRED_VARS ${PACKAGE_NAME}_INCLUDE_DIR)
   if(DEFINED ${PACKAGE_NAME}_LIBRARY_NAMES)
-    list(APPEND ${PACKAGE_NAME}_REQUIRED_VARS ${PACKAGE_NAME}_LIBRARY_DIRS)
+    list(APPEND ${PACKAGE_NAME}_REQUIRED_VARS ${PACKAGE_NAME}_LIBRARY)
   endif()
   find_package_handle_standard_args(
     ${PACKAGE_NAME}
@@ -60,11 +61,11 @@ function(PACKAGE_FINDING_HELPER PACKAGE_NAME HEADER_FILE)
     FAIL_MESSAGE
     "Could not find package ${PACKAGE_NAME}. Is MESOS_BUILD_DIR correctly set?"
     )
-  if(DEFINED ${PACKAGE_NAME}_LIBRARY_DIRS)
-    message(STATUS "${PACKAGE_NAME} library: ${${PACKAGE_NAME}_LIBRARY_DIRS}")
+  if(DEFINED ${PACKAGE_NAME}_LIBRARY)
+    message(STATUS "${PACKAGE_NAME} library: ${${PACKAGE_NAME}_LIBRARY}")
   endif()
   if(DEFINED ${PACKAGE_NAME}_INCLUDE_DIR)
     message(STATUS "${PACKAGE_NAME} header: ${${PACKAGE_NAME}_INCLUDE_DIR}")
   endif()
-  set(${PACKAGE_NAME}_LIBRARY_DIRS ${${PACKAGE_NAME}_LIBRARY_DIRS} PARENT_SCOPE)
+  set(${PACKAGE_NAME}_LIBRARY ${${PACKAGE_NAME}_LIBRARY} PARENT_SCOPE)
 endfunction()

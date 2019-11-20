@@ -4,6 +4,13 @@ sudo: required
 services:
   - docker
 
+jobs:
+  include:
+    - name: "Build against Cmake"
+      env: BUILD_TYPE=cmake
+    - name: "Build against automake"
+      env: BUILD_TYPE=automake
+
 script:
-  - docker build -t criteo/mesos-command-modules .
+  - docker build -t criteo/mesos-command-modules --build-arg BUILD_TYPE=$BUILD_TYPE .
   - docker run --env TRAVIS -v $(pwd):/src/mesos-command-modules criteo/mesos-command-modules
