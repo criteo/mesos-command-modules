@@ -9,7 +9,10 @@ Here is the list of supported modules:
 - Hook (all methods)
 - Isolator (prepare, cleanup, watch, usage methods)
 
-Warning: this project is not battle-tested yet, use it at your own risk (although it has run on production in Criteo for >1y).
+## Production readyness
+
+This project has been running in production on our infrastructure for since June 2018. It is called on every container start/stop and to monitor metrics.
+It represent around 4000 calls / second.
 
 ## Getting Started
 
@@ -123,6 +126,8 @@ Follow [examples/README.md](./examples/README.md).
 We prefered forking in order to ensure the statelessness of the commands.
 The downside of this choice is that forking a process might be slow but
 we do not expect to have billions of calls on each agent anyway.
+
+Warning: the usage method of Isolator can actually be called very often (on every call for /monitor/statistics endpoint is called which call usage for every container each time). It make a lot of call.
 
 ### Using temporary files as inputs and outputs buffers
 
