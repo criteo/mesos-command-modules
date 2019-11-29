@@ -72,6 +72,14 @@ commands.
               "value": "/opt/mesos/modules/cleanup.sh"
             },
             {
+              "key": "isolator_watch_command",
+              "value": "/opt/mesos/modules/watch.sh"
+            },
+            {
+              "key": "isolator_watch_frequence",
+              "value": "10"
+            },
+            {
               "key": "debug",
               "value": "false"
             }
