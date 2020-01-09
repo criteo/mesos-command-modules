@@ -133,6 +133,9 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   if (m_infos.contains(containerId)) {
     inputsJson.values["container_config"] =
         JSON::protobuf(m_infos[containerId]);
+  } else {
+    return Failure(
+        "mesos-command-module is not initialized for current container");
   }
 
   std::string inputStringified = stringify(inputsJson);
@@ -193,6 +196,9 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
   if (m_infos.contains(containerId)) {
     inputsJson.values["container_config"] =
         JSON::protobuf(m_infos[containerId]);
+  } else {
+    return Failure(
+        "mesos-command-module is not initialized for current container");
   }
 
   return CommandRunner(m_isDebugMode, metadata)
@@ -228,9 +234,7 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
     const ContainerID& containerId) {
   if (m_cleanupCommand.isNone()) {
-    if (m_infos.contains(containerId)) {
-      m_infos.erase(containerId);
-    }
+    m_infos.erase(containerId);
     return Nothing();
   }
 
@@ -241,14 +245,15 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   if (m_infos.contains(containerId)) {
     inputsJson.values["container_config"] =
         JSON::protobuf(m_infos[containerId]);
+  } else {
+    LOG(WARNING)
+        << "Missing container info during cleanup of mesos-command-module.";
   }
 
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
                            .run(m_cleanupCommand.get(), stringify(inputsJson));
 
-  if (m_infos.contains(containerId)) {
-    m_infos.erase(containerId);
-  }
+  m_infos.erase(containerId);
   if (output.isError()) {
     return Failure(output.error());
   }
