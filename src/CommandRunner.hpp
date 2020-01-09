@@ -45,6 +45,14 @@ class CommandRunner {
                        const std::string& serializedInput);
 
   /**
+   * Run a command synchonously without timeout and without using libprocess.
+   * Using libprocess in the watch loop can generate some deadlocks in
+   * libprocess.
+   */
+  Try<std::string> runWithoutTimeout(const Command& command,
+                                     const std::string& input);
+
+  /**
    * Run a command asynchonously.
    * This method leverages libprocess primitives to avoid blocking unnecessarily
    * while waiting for the command's output.

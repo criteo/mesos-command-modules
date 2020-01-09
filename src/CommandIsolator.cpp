@@ -129,13 +129,13 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
   RecurrentCommand command = m_watchCommand.get();
   bool isDebugMode = m_isDebugMode;
 
-  process::UPID proc = spawn(new process::ProcessBase(), false);
+  process::UPID proc = spawn(new process::ProcessBase());
 
   Future<ContainerLimitation> future = loop(
       proc,
       [isDebugMode, metadata, inputStringified, command]() {
-        Try<string> output =
-            CommandRunner(isDebugMode, metadata).run(command, inputStringified);
+        Try<string> output = CommandRunner(isDebugMode, metadata)
+                                 .runWithoutTimeout(command, inputStringified);
         return output;
       },
       [command](
@@ -165,7 +165,11 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
         }
       });
 
-  future.onDiscard([proc]() { terminate(proc); });
+  future.onAny([proc]() {
+    LOG(WARNING) << "Terminating watch loop";
+    terminate(proc);
+    LOG(WARNING) << "Watch loop Terminated";
+  });
 
   return future;
 }
