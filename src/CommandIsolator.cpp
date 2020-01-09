@@ -68,6 +68,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   Option<Command> m_cleanupCommand;
   Option<Command> m_usageCommand;
   bool m_isDebugMode;
+  hashmap<ContainerID, ContainerConfig> m_infos;
 };
 
 CommandIsolatorProcess::CommandIsolatorProcess(
@@ -83,6 +84,11 @@ CommandIsolatorProcess::CommandIsolatorProcess(
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
+  if (m_infos.contains(containerId)) {
+    return Failure("mesos-command-module already initialized for container");
+  } else {
+    m_infos.put(containerId, containerConfig);
+  }
   if (m_prepareCommand.isNone()) {
     return None();
   }
@@ -124,6 +130,10 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
+  if (m_infos.contains(containerId)) {
+    inputsJson.values["container_config"] =
+        JSON::protobuf(m_infos[containerId]);
+  }
 
   std::string inputStringified = stringify(inputsJson);
   RecurrentCommand command = m_watchCommand.get();
@@ -180,6 +190,10 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
+  if (m_infos.contains(containerId)) {
+    inputsJson.values["container_config"] =
+        JSON::protobuf(m_infos[containerId]);
+  }
 
   return CommandRunner(m_isDebugMode, metadata)
       .asyncRun(m_usageCommand.get(), stringify(inputsJson))
@@ -214,6 +228,9 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
     const ContainerID& containerId) {
   if (m_cleanupCommand.isNone()) {
+    if (m_infos.contains(containerId)) {
+      m_infos.erase(containerId);
+    }
     return Nothing();
   }
 
@@ -221,10 +238,17 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
 
   JSON::Object inputsJson;
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
+  if (m_infos.contains(containerId)) {
+    inputsJson.values["container_config"] =
+        JSON::protobuf(m_infos[containerId]);
+  }
 
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
                            .run(m_cleanupCommand.get(), stringify(inputsJson));
 
+  if (m_infos.contains(containerId)) {
+    m_infos.erase(containerId);
+  }
   if (output.isError()) {
     return Failure(output.error());
   }

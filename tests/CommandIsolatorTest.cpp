@@ -74,6 +74,48 @@ TEST_F(CommandIsolatorTest,
   EXPECT_EQ(5, stats.net_snmp_statistics().tcp_stats().currestab());
 }
 
+class CommandIsolatorContinuousTest : public ::testing::Test {
+protected:
+  ContainerID containerId;
+  ContainerConfig containerConfig;
+
+public:
+  void SetUp() {
+    isolator.reset(
+      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+                          RecurrentCommand(g_resourcesPath + "watch_continuous.sh", 3, 0.1),
+                          Command(g_resourcesPath + "cleanup.sh"),
+                          Command(g_resourcesPath + "usage_continuous.sh")));
+    containerId.set_value("other_container_id");
+
+    containerConfig.set_rootfs("/isolated_fs");
+    containerConfig.set_user("app_user");
+  }
+
+  std::unique_ptr<CommandIsolator> isolator;
+};
+
+TEST_F(CommandIsolatorContinuousTest,
+  should_run_prepare_watch_usage_and_cleanup_commands) {
+  auto containerLaunchInfoFuture =
+    isolator->prepare(containerId, containerConfig);
+  AWAIT_READY(containerLaunchInfoFuture);
+
+  auto containerLimitation = isolator->watch(containerId);
+  AWAIT_READY(containerLimitation);
+  ContainerLimitation limited = containerLimitation.get();
+  EXPECT_EQ("user found", limited.message());
+
+  auto resourceStatistics = isolator->usage(containerId);
+  AWAIT_READY(resourceStatistics);
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
+  EXPECT_EQ(1, stats.timestamp());
+
+  auto future = isolator->cleanup(containerId);
+  AWAIT_READY(future);
+
+}
+
 class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
