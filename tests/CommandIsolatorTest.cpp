@@ -16,37 +16,50 @@ class CommandIsolatorTest : public ::testing::Test {
  protected:
   ContainerID containerId;
   ContainerConfig containerConfig;
+  process::Future<Option<ContainerLaunchInfo>> containerLaunchInfoFuture;
 
  public:
   void SetUp() {
-    isolator.reset(
-        new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
-                            RecurrentCommand(g_resourcesPath + "watch.sh", 3, 0.1),
-                            Command(g_resourcesPath + "cleanup.sh"),
-                            Command(g_resourcesPath + "usage.sh")));
     containerId.set_value("container_id");
-
     containerConfig.set_rootfs("/isolated_fs");
     containerConfig.set_user("app_user");
   }
+  void Prepare() {
+      containerLaunchInfoFuture =
+        isolator->prepare(containerId, containerConfig);
+      AWAIT_READY(containerLaunchInfoFuture);
+  }
+  void PrepareFailed() {
+      containerLaunchInfoFuture =
+        isolator->prepare(containerId, containerConfig);
+      AWAIT_FAILED(containerLaunchInfoFuture);
+    }
 
   std::unique_ptr<CommandIsolator> isolator;
 };
 
-TEST_F(CommandIsolatorTest,
+class CommandIsolatorSimpleTest : public CommandIsolatorTest {
+public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(
+      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+                          RecurrentCommand(g_resourcesPath + "watch.sh", 3, 0.1),
+                          Command(g_resourcesPath + "cleanup.sh"),
+                          Command(g_resourcesPath + "usage.sh")));
+    CommandIsolatorTest::Prepare();
+  }
+};
+
+TEST_F(CommandIsolatorSimpleTest,
        should_run_prepare_command_and_retrieve_container_launch_info) {
-  auto containerLaunchInfoFuture =
-      isolator->prepare(containerId, containerConfig);
-
-  AWAIT_READY(containerLaunchInfoFuture);
-
   Option<ContainerLaunchInfo> launchInfo = containerLaunchInfoFuture.get();
 
   EXPECT_EQ("/isolated_fs", launchInfo->rootfs());
   EXPECT_EQ("app_user", launchInfo->user());
 }
 
-TEST_F(CommandIsolatorTest,
+TEST_F(CommandIsolatorSimpleTest,
        should_run_watch_command_and_retrieve_container_limitation) {
   auto containerLimitation = isolator->watch(containerId);
 
@@ -57,13 +70,13 @@ TEST_F(CommandIsolatorTest,
   EXPECT_EQ("too much toto", limited.message());
 }
 
-TEST_F(CommandIsolatorTest,
+TEST_F(CommandIsolatorSimpleTest,
        should_run_cleanup_command_and_terminates_successfully) {
   auto future = isolator->cleanup(containerId);
   AWAIT_READY(future);
 }
 
-TEST_F(CommandIsolatorTest,
+TEST_F(CommandIsolatorSimpleTest,
        should_run_usage_command_and_retrieve_container_limitation) {
   auto resourceStatistics = isolator->usage(containerId);
 
@@ -72,6 +85,36 @@ TEST_F(CommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 
   EXPECT_EQ(5, stats.net_snmp_statistics().tcp_stats().currestab());
+}
+
+class CommandIsolatorContinuousTest : public CommandIsolatorTest {
+public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(
+      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+                          RecurrentCommand(g_resourcesPath + "watch_continuous.sh", 3, 0.1),
+                          Command(g_resourcesPath + "cleanup.sh"),
+                          Command(g_resourcesPath + "usage_continuous.sh")));
+    CommandIsolatorTest::Prepare();
+  }
+};
+
+TEST_F(CommandIsolatorContinuousTest,
+  should_run_prepare_watch_usage_and_cleanup_commands) {
+  auto containerLimitation = isolator->watch(containerId);
+  AWAIT_READY(containerLimitation);
+  ContainerLimitation limited = containerLimitation.get();
+  EXPECT_EQ("user found", limited.message());
+
+  auto resourceStatistics = isolator->usage(containerId);
+  AWAIT_READY(resourceStatistics);
+  ::mesos::ResourceStatistics stats = resourceStatistics.get();
+  EXPECT_EQ(1, stats.timestamp());
+
+  auto future = isolator->cleanup(containerId);
+  AWAIT_READY(future);
+
 }
 
 class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
@@ -83,15 +126,9 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
                                        Command("unexisting.sh"),
                                        Command("unexisting.sh")
                                        ));
+    CommandIsolatorTest::PrepareFailed();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
-
-TEST_F(UnexistingCommandIsolatorTest,
-       should_try_to_run_prepare_command_and_fail) {
-  auto future = isolator->prepare(containerId, containerConfig);
-  AWAIT_FAILED(future);
-}
 
 TEST_F(UnexistingCommandIsolatorTest,
        should_try_to_run_watch_command_and_fail) {
@@ -116,15 +153,9 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
         None(),
         Command(g_resourcesPath + "usage_malformed.sh")
         ));
+    CommandIsolatorTest::PrepareFailed();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
-
-TEST_F(MalformedCommandIsolatorTest,
-       should_run_prepare_command_and_handle_malformed_output_json) {
-  auto future = isolator->prepare(containerId, containerConfig);
-  AWAIT_FAILED(future);
-}
 
 TEST_F(MalformedCommandIsolatorTest,
        should_run_watch_command_and_handle_malformed_output_json) {
@@ -147,16 +178,14 @@ class EmptyCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(None(), None(), None(), None()));
+    CommandIsolatorTest::Prepare();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
 
 TEST_F(
     EmptyCommandIsolatorTest,
     should_resolve_promise_and_return_null_option_when_prepare_command_is_empty) {
-  auto future = isolator->prepare(containerId, containerConfig);
-  AWAIT_READY(future);
-  EXPECT_TRUE(future->isNone());
+  EXPECT_TRUE(containerLaunchInfoFuture->isNone());
 }
 
 TEST_F(EmptyCommandIsolatorTest,
@@ -191,15 +220,9 @@ class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
         None(),
         Command(g_resourcesPath + "usage_incorrect_protobuf.sh")
         ));
+    CommandIsolatorTest::PrepareFailed();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
-
-TEST_F(IncorrectProtobufCommandIsolatorTest,
-       should_run_prepare_command_and_handle_incorrect_protobuf_output) {
-  auto future = isolator->prepare(containerId, containerConfig);
-  AWAIT_FAILED(future);
-}
 
 TEST_F(IncorrectProtobufCommandIsolatorTest,
        should_run_watch_command_and_handle_incorrect_protobuf_output) {
@@ -225,8 +248,8 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
         None(), RecurrentCommand(g_resourcesPath + "watch_empty.sh", 3, 0.1), None(),
         Command(g_resourcesPath + "usage_empty.sh")
         ));
+    CommandIsolatorTest::Prepare();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
 
 TEST_F(EmptyOutputCommandIsolatorTest,
@@ -251,8 +274,8 @@ class TimeoutCommandIsolatorTest : public CommandIsolatorTest {
         None(), None(), None(),
         Command(g_resourcesPath + "usage_timeout.sh", 1)
         ));
+    CommandIsolatorTest::Prepare();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
 
 TEST_F(TimeoutCommandIsolatorTest, should_return_empty_stats_on_usage_timeout) {
@@ -270,8 +293,8 @@ class LongCommandIsolatorTest : public CommandIsolatorTest {
         None(), None(), None(),
         Command(g_resourcesPath + "usage_long.sh", 1)
         ));
+    CommandIsolatorTest::Prepare();
   }
-  std::unique_ptr<CommandIsolator> isolator;
 };
 
 TEST_F(LongCommandIsolatorTest,
