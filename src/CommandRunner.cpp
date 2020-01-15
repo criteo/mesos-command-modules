@@ -1,4 +1,5 @@
 #include "CommandRunner.hpp"
+#include "RunningContext.hpp"
 
 #include <errno.h>
 #include <signal.h>
@@ -9,7 +10,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <chrono>
-#include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
@@ -29,8 +29,6 @@
 #include <process/process.hpp>
 #include <process/subprocess.hpp>
 
-#define TEMP_FILE_TEMPLATE "/tmp/criteo-mesos-XXXXXX"
-
 #define READ 0
 #define WRITE 1
 
@@ -42,56 +40,6 @@ using std::string;
 using std::vector;
 using namespace std::chrono;
 using namespace process;
-
-/*
- * Represent a temporary file that can be either written or read from.
- */
-class TemporaryFile {
- public:
-  TemporaryFile() {
-    char filepath[] = TEMP_FILE_TEMPLATE;
-    int fd = mkstemp(filepath);
-    if (fd == -1)
-      throw std::runtime_error(
-          "Unable to create temporary file to run commands");
-    close(fd);
-    m_filepath = std::string(filepath);
-  }
-
-  /*
-   * Read whole content of the temporary file.
-   * @return The content of the file.
-   */
-  std::string readAll() const {
-    std::ifstream ifs(m_filepath);
-    std::string content((std::istreambuf_iterator<char>(ifs)),
-                        (std::istreambuf_iterator<char>()));
-    ifs.close();
-    return content;
-  }
-
-  /*
-   * Write content to the temporary file and flush it.
-   * @param content The content to write to the file.
-   */
-  void write(const std::string& content) const {
-    std::ofstream ofs;
-    ofs.open(m_filepath);
-    ofs << content;
-    std::flush(ofs);
-    ofs.close();
-  }
-
-  inline const std::string& filepath() const { return m_filepath; }
-
-  friend ostream& operator<<(ostream& out, const TemporaryFile& temp_file) {
-    out << temp_file.m_filepath;
-    return out;
-  }
-
- private:
-  std::string m_filepath;
-};
 
 inline static bool processStillRunning(pid_t pid) {
   return proc::status(pid).isSome();
@@ -190,46 +138,23 @@ CommandRunner::CommandRunner(bool debug,
 Future<Try<string>> CommandRunner::asyncRun(const Command& command,
                                             const std::string& input) {
   try {
-    TemporaryFile inputFile;
-    TemporaryFile outputFile;
-    TemporaryFile errorFile;
-    inputFile.write(input);
+    RunningContext rc{m_debug, m_loggingMetadata, command, input};
 
-    if (m_debug) {
-      TASK_LOG(INFO, m_loggingMetadata)
-          << "Calling command: \"" << command.command() << "\" ("
-          << command.timeout() << "s) " << inputFile.filepath() << " "
-          << outputFile.filepath() << " " << errorFile.filepath();
-    } else {
-      TASK_LOG(INFO, m_loggingMetadata) << "Calling command: \""
-                                        << command.command() << "\" ("
-                                        << command.timeout() << "s)";
-    }
-
-    vector<string> args = {inputFile.filepath(), outputFile.filepath(),
-                           errorFile.filepath()};
-
-    return runCommandWithTimeout(command.command(), args, command.timeout(),
-                                 m_loggingMetadata)
+    return runCommandWithTimeout(command.command(), rc.get_args(),
+                                 command.timeout(), m_loggingMetadata)
         .then([=](Try<bool> status) -> Future<Try<string>> {
           if (status.isError()) {
-            Try<string> stderr = os::read(errorFile.filepath());
+            Try<string> stderr = rc.readError();
             if (stderr.isError() || stderr.get().empty())
               return Error(status.error());
             return Error(status.error() + " Cause: " + stderr.get());
           }
-          return os::read(outputFile.filepath());
+          return rc.readOutput();
         })
         .onAny([ =, loggingMetadata =
                         m_loggingMetadata ](Future<Try<string>> output)
                    ->Future<Try<string>> {
-                     if (m_debug)
-                       TASK_LOG(INFO, loggingMetadata)
-                           << "Removing temp files " << inputFile << " "
-                           << outputFile << " " << errorFile;
-                     os::rm(inputFile.filepath());
-                     os::rm(outputFile.filepath());
-                     os::rm(errorFile.filepath());
+                     rc.deleteContext();
                      return output;
                    });
   } catch (const std::runtime_error& e) {
@@ -239,6 +164,40 @@ Future<Try<string>> CommandRunner::asyncRun(const Command& command,
     }
     return Error(e.what());
   }
+}
+
+Try<string> CommandRunner::runWithoutTimeout(const Command& command,
+                                             const std::string& input) {
+  RunningContext rc{m_debug, m_loggingMetadata, command, input};
+
+  std::stringstream cmdline;
+  cmdline << command.command() << " ";
+  for (auto i : rc.get_args()) cmdline << i << " ";
+
+  auto start = std::chrono::system_clock::now();
+  int ret = system(cmdline.str().c_str());
+  if (ret < 0) {
+    string errorMessage = "Error launching external command \"" +
+                          command.command() + "\": " + strerror(errno);
+    TASK_LOG(ERROR, m_loggingMetadata) << errorMessage;
+    return Error(errorMessage);
+  }
+  if (ret) {
+    Try<string> stderr = rc.readError();
+    std::string errMsg = "Command exited with exit code: " + ret;
+    if (stderr.isError() || stderr.get().empty()) return Error(errMsg);
+    return Error(errMsg + " Cause: " + stderr.get());
+  }
+  auto end = std::chrono::system_clock::now();
+
+  if (m_debug) {
+    std::chrono::duration<double> elapsed_seconds = end - start;
+    LOG(WARNING) << "Finished Executing : " << cmdline.str().c_str() << " in "
+                 << elapsed_seconds.count() << " seconds";
+  }
+  auto output = rc.readOutput();
+  rc.deleteContext();
+  return output;
 }
 
 Try<string> CommandRunner::run(const Command& command,

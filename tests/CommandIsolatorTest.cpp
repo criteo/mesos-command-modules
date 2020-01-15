@@ -68,6 +68,7 @@ TEST_F(CommandIsolatorSimpleTest,
   ContainerLimitation limited = containerLimitation.get();
 
   EXPECT_EQ("too much toto", limited.message());
+  containerLimitation.discard();
 }
 
 TEST_F(CommandIsolatorSimpleTest,
