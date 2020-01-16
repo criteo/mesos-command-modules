@@ -47,10 +47,6 @@ RunningContext::RunningContext(bool debug,
         << "Calling command: \"" << command.command() << "\" ("
         << command.timeout() << "s) " << inputFile.filepath() << " "
         << outputFile.filepath() << " " << errorFile.filepath();
-  } else {
-    TASK_LOG(INFO, loggingMetadata) << "Calling command: \""
-                                    << command.command() << "\" ("
-                                    << command.timeout() << "s)";
   }
 }
 
