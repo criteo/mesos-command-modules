@@ -108,6 +108,7 @@ Note: com_criteo_mesos_CommandIsolator2, com_criteo_mesos_CommandIsolator3, ... 
 ## Build Instructions
 
 ```shell
+    $ export MESOS_ROOT_DIR=[ directory where Mesos was cloned, e.g. ~/repos/mesos ]
     $ export MESOS_BUILD_DIR=[ directory where Mesos was BUILT, e.g. ~/repos/mesos/build ]
     $ mkdir build
     $ cd build
@@ -121,6 +122,19 @@ otherwise the Travis job will fail. To apply clang-format, type:
 
 ```shell
 make clang-format
+```
+
+### With docker
+
+```shell
+    $ docker build . -t mesos-command-modules
+    $ docker run -v "$(pwd):/src/mesos-command-modules" mesos-command-modules
+```
+
+## Test on a slave
+
+```shell
+    $ ./scripts/build_and_upload_module.sh user@hostname
 ```
 
 ## Deploy a test environment
