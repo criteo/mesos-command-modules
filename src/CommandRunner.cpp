@@ -184,7 +184,8 @@ Try<string> CommandRunner::runWithoutTimeout(const Command& command,
   }
   if (ret) {
     Try<string> stderr = rc.readError();
-    std::string errMsg = "Command exited with exit code: " + ret;
+    std::string errMsg =
+        "Command exited with exit code: " + std::to_string(WEXITSTATUS(ret));
     if (stderr.isError() || stderr.get().empty()) return Error(errMsg);
     return Error(errMsg + " Cause: " + stderr.get());
   }

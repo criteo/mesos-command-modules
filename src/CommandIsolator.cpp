@@ -151,14 +151,22 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
                                  .runWithoutTimeout(command, inputStringified);
         return output;
       },
-      [command](
+      [command, this, containerId](
           Try<string> output) -> Future<ControlFlow<ContainerLimitation>> {
         try {
+          if (!m_infos.contains(containerId)) {
+            LOG(WARNING) << "Terminating watch loop for containerId: "
+                         << containerId;
+            // Returning a discarded future stops the loop
+            Future<ControlFlow<ContainerLimitation>> ret;
+            ret.discard();
+            return ret;
+          }
           if (output.isError())
             throw std::runtime_error("Unable to parse output: " +
                                      output.error());
 
-          if (output->empty()) throw std::runtime_error("");
+          if (output->empty()) throw should_continue_exception();
 
           Result<ContainerLimitation> containerLimitation =
               jsonToProtobuf<ContainerLimitation>(output.get());
@@ -171,11 +179,12 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
           return Break(containerLimitation.get());
         } catch (const std::runtime_error& e) {
           if (e.what()) LOG(WARNING) << e.what();
-          return after(Seconds(command.frequence()))
-              .then([]() -> process::ControlFlow<ContainerLimitation> {
-                return process::Continue();
-              });
+        } catch (const should_continue_exception& e) {
         }
+        return after(Seconds(command.frequence()))
+            .then([]() -> process::ControlFlow<ContainerLimitation> {
+              return process::Continue();
+            });
       });
 
   future.onAny([proc]() {
