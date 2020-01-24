@@ -166,7 +166,7 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
             throw std::runtime_error("Unable to parse output: " +
                                      output.error());
 
-          if (output->empty()) throw std::runtime_error("");
+          if (output->empty()) throw should_continue_exception();
 
           Result<ContainerLimitation> containerLimitation =
               jsonToProtobuf<ContainerLimitation>(output.get());
@@ -179,11 +179,12 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
           return Break(containerLimitation.get());
         } catch (const std::runtime_error& e) {
           if (e.what()) LOG(WARNING) << e.what();
-          return after(Seconds(command.frequence()))
-              .then([]() -> process::ControlFlow<ContainerLimitation> {
-                return process::Continue();
-              });
+        } catch (const should_continue_exception& e) {
         }
+        return after(Seconds(command.frequence()))
+            .then([]() -> process::ControlFlow<ContainerLimitation> {
+              return process::Continue();
+            });
       });
 
   future.onAny([proc]() {

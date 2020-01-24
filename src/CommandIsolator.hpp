@@ -13,6 +13,8 @@
 namespace criteo {
 namespace mesos {
 
+class should_continue_exception : public std::exception {};
+
 // Forward declaration
 class CommandIsolatorProcess;
 
