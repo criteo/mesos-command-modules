@@ -151,9 +151,17 @@ process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
                                  .runWithoutTimeout(command, inputStringified);
         return output;
       },
-      [command](
+      [command, this, containerId](
           Try<string> output) -> Future<ControlFlow<ContainerLimitation>> {
         try {
+          if (!m_infos.contains(containerId)) {
+            LOG(WARNING) << "Terminating watch loop for containerId: "
+                         << containerId;
+            // Returning a discarded future stops the loop
+            Future<ControlFlow<ContainerLimitation>> ret;
+            ret.discard();
+            return ret;
+          }
           if (output.isError())
             throw std::runtime_error("Unable to parse output: " +
                                      output.error());
