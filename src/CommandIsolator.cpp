@@ -20,6 +20,7 @@ using ::mesos::ContainerID;
 using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
 using ::mesos::slave::ContainerLimitation;
+using ::mesos::slave::ContainerState;
 
 using process::Break;
 using process::Continue;
@@ -28,6 +29,8 @@ using process::Failure;
 using process::Future;
 using process::loop;
 using process::after;
+
+const string COMMAND_ISOLATOR_STATE_DIR = "/var/run/mesos/isolators/command";
 
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
@@ -38,6 +41,10 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
 
   virtual process::Future<Option<ContainerLaunchInfo>> prepare(
       const ContainerID& containerId, const ContainerConfig& containerConfig);
+
+  virtual process::Future<Nothing> recover(
+      const std::vector<ContainerState>& states,
+      const hashset<ContainerID>& orphans);
 
   virtual process::Future<ContainerLimitation> watch(
       const ContainerID& containerId);
@@ -63,6 +70,9 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
     return stats;
   }
 
+  Try<Nothing> saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig);
+  Try<ContainerConfig> restoreContainerContext(const ContainerID& containerId);
+
   Option<Command> m_prepareCommand;
   Option<RecurrentCommand> m_watchCommand;
   Option<Command> m_cleanupCommand;
@@ -82,6 +92,29 @@ CommandIsolatorProcess::CommandIsolatorProcess(
       m_usageCommand(usageCommand),
       m_isDebugMode(isDebugMode) {}
 
+Try<Nothing> CommandIsolatorProcess::saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig) {
+    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, stringify(containerId));
+    Result<Nothing> ok = os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
+    if (ok.isError()) {
+        return Error("Failed writing context file for container " + stringify(containerId) + ": " + ok.error());
+    }
+    return Nothing();
+}
+
+Try<ContainerConfig> CommandIsolatorProcess::restoreContainerContext(const ContainerID& containerId) {
+    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, stringify(containerId));
+    Result<string> context_json = os::read(context_file_path);
+    if (context_json.isError()) {
+        return Error("Failed reading context file: " + context_json.error());
+    }
+    Result<ContainerConfig> containerConfig = 
+            jsonToProtobuf<ContainerConfig>(context_json.get());
+    if (containerConfig.isError()) {
+        return Error("Unable to deserialize ContainerConfig: " + containerConfig.error());
+    }
+    return containerConfig.get();
+}
+
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
   if (m_infos.contains(containerId)) {
@@ -89,6 +122,7 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
   } else {
     m_infos.put(containerId, containerConfig);
   }
+  saveContainerContext(containerId, containerConfig);
   if (m_prepareCommand.isNone()) {
     return None();
   }
@@ -118,6 +152,22 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
                    containerLaunchInfo.error());
   }
   return containerLaunchInfo.get();
+}
+
+process::Future<Nothing> CommandIsolatorProcess::recover(
+    const std::vector<ContainerState>& states,
+    const hashset<ContainerID>& orphans) {
+    for (const ContainerState& state : states) {
+        const ContainerID& containerId = state.container_id();
+        Result<ContainerConfig> containerConfig = restoreContainerContext(containerId);
+        if (containerConfig.isError()) {
+            // TODO: log error
+            continue;
+        }
+        m_infos.put(containerId, containerConfig.get());
+        // TODO: log success
+    }
+  return Nothing();
 }
 
 process::Future<ContainerLimitation> CommandIsolatorProcess::watch(
@@ -297,6 +347,13 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
   return dispatch(m_process, &CommandIsolatorProcess::prepare, containerId,
                   containerConfig);
+}
+
+process::Future<Nothing> CommandIsolator::recover(
+      const std::vector<ContainerState>& states,
+      const hashset<ContainerID>& orphans
+        ) {
+    return dispatch(m_process, &CommandIsolatorProcess::recover, states, orphans);
 }
 
 process::Future<ContainerLimitation> CommandIsolator::watch(

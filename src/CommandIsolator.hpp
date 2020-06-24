@@ -76,6 +76,15 @@ class CommandIsolator : public ::mesos::slave::Isolator {
       const ::mesos::slave::ContainerConfig& containerConfig);
 
   /**
+   * Recover containers from the run states and containers context saved on disk
+   *
+   * @param containerId The container ID of the container to be cleaned up.
+   */
+  virtual process::Future<Nothing> recover(
+      const std::vector<::mesos::slave::ContainerState>& states,
+      const hashset<::mesos::ContainerID>& orphans);
+
+  /**
    * Run an external command on cleanup phase of a given container.
    *
    * @param containerId The container ID of the container to be cleaned up.
