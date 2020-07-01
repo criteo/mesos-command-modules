@@ -56,7 +56,7 @@ class RunningContext {
   Try<std::string> readFile(const TemporaryFile& file) const;
 
   bool debug;
-  const logging::Metadata& loggingMetadata;
+  const logging::Metadata loggingMetadata;
   std::vector<std::string> args;
 
   TemporaryFile inputFile;
