@@ -14,6 +14,7 @@ namespace mesos {
  * can provide in the configuration.
  */
 struct Configuration {
+  std::string name;
   Option<Command> prepareCommand;
   Option<RecurrentCommand> watchCommand;
   Option<Command> cleanupCommand;

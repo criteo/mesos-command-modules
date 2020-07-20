@@ -34,7 +34,8 @@ const string COMMAND_ISOLATOR_STATE_DIR = "/var/run/mesos/isolators/command";
 
 class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
-  CommandIsolatorProcess(const Option<Command>& prepareCommand,
+  CommandIsolatorProcess(const string& name,
+                         const Option<Command>& prepareCommand,
                          const Option<RecurrentCommand>& watchCommand,
                          const Option<Command>& cleanupCommand,
                          const Option<Command>& usageCommand, bool isDebugMode);
@@ -73,6 +74,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   Try<Nothing> saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig);
   Try<ContainerConfig> restoreContainerContext(const ContainerID& containerId);
 
+  string m_name;
   Option<Command> m_prepareCommand;
   Option<RecurrentCommand> m_watchCommand;
   Option<Command> m_cleanupCommand;
@@ -82,18 +84,19 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
 };
 
 CommandIsolatorProcess::CommandIsolatorProcess(
-    const Option<Command>& prepareCommand,
+    const string& name, const Option<Command>& prepareCommand,
     const Option<RecurrentCommand>& watchCommand,
     const Option<Command>& cleanupCommand, const Option<Command>& usageCommand,
     bool isDebugMode)
-    : m_prepareCommand(prepareCommand),
+    : m_name(name),
+      m_prepareCommand(prepareCommand),
       m_watchCommand(watchCommand),
       m_cleanupCommand(cleanupCommand),
       m_usageCommand(usageCommand),
       m_isDebugMode(isDebugMode) {}
 
 Try<Nothing> CommandIsolatorProcess::saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig) {
-    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, stringify(containerId));
+    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
     Result<Nothing> ok = os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
     if (ok.isError()) {
         return Error("Failed writing context file for container " + stringify(containerId) + ": " + ok.error());
@@ -102,7 +105,7 @@ Try<Nothing> CommandIsolatorProcess::saveContainerContext(const ContainerID& con
 }
 
 Try<ContainerConfig> CommandIsolatorProcess::restoreContainerContext(const ContainerID& containerId) {
-    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, stringify(containerId));
+    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
     Result<string> context_json = os::read(context_file_path);
     if (context_json.isError()) {
         return Error("Failed reading context file: " + context_json.error());
@@ -324,12 +327,13 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   return Nothing();
 }
 
-CommandIsolator::CommandIsolator(const Option<Command>& prepareCommand,
+CommandIsolator::CommandIsolator(const string& name,
+                                 const Option<Command>& prepareCommand,
                                  const Option<RecurrentCommand>& watchCommand,
                                  const Option<Command>& cleanupCommand,
                                  const Option<Command>& usageCommand,
                                  bool isDebugMode)
-    : m_process(new CommandIsolatorProcess(prepareCommand, watchCommand,
+    : m_process(new CommandIsolatorProcess(name, prepareCommand, watchCommand,
                                            cleanupCommand, usageCommand,
                                            isDebugMode)) {
   spawn(m_process);

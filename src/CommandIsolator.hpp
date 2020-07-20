@@ -44,7 +44,8 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  explicit CommandIsolator(const Option<Command>& prepareCommand,
+  explicit CommandIsolator(const std::string& name,
+                           const Option<Command>& prepareCommand,
                            const Option<RecurrentCommand>& watchCommand,
                            const Option<Command>& cleanupCommand,
                            const Option<Command>& usageCommand,
