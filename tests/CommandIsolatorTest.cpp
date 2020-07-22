@@ -43,7 +43,7 @@ public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(
-      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+      new CommandIsolator("test", Command(g_resourcesPath + "prepare.sh"),
                           RecurrentCommand(g_resourcesPath + "watch.sh", 3, 0.1),
                           Command(g_resourcesPath + "cleanup.sh"),
                           Command(g_resourcesPath + "usage.sh")));
@@ -93,7 +93,7 @@ public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(
-      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+      new CommandIsolator("test", Command(g_resourcesPath + "prepare.sh"),
                           RecurrentCommand(g_resourcesPath + "watch_continuous.sh", 3, 0.1),
                           Command(g_resourcesPath + "cleanup.sh"),
                           Command(g_resourcesPath + "usage_continuous.sh")));
@@ -122,7 +122,7 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(Command("unexisting.sh"),
+    isolator.reset(new CommandIsolator("test", Command("unexisting.sh"),
                                        RecurrentCommand("unexisting.sh", 1, 0.1),
                                        Command("unexisting.sh"),
                                        Command("unexisting.sh")
@@ -149,6 +149,7 @@ class MalformedCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         Command(g_resourcesPath + "prepare_malformed.sh"),
         RecurrentCommand(g_resourcesPath + "watch_malformed.sh", 1, 0.3),
         None(),
@@ -178,7 +179,7 @@ class EmptyCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(None(), None(), None(), None()));
+    isolator.reset(new CommandIsolator("test", None(), None(), None(), None()));
     CommandIsolatorTest::Prepare();
   }
 };
@@ -216,6 +217,7 @@ class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"),
         RecurrentCommand(g_resourcesPath + "watch_incorrect_protobuf.sh", 3, 0.1),
         None(),
@@ -246,6 +248,7 @@ class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), RecurrentCommand(g_resourcesPath + "watch_empty.sh", 3, 0.1), None(),
         Command(g_resourcesPath + "usage_empty.sh")
         ));
@@ -272,6 +275,7 @@ class TimeoutCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), None(), None(),
         Command(g_resourcesPath + "usage_timeout.sh", 1)
         ));
@@ -291,6 +295,7 @@ class LongCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), None(), None(),
         Command(g_resourcesPath + "usage_long.sh", 1)
         ));
