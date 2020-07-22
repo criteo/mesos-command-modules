@@ -10,6 +10,7 @@
 #include <process/process.hpp>
 #include <process/time.hpp>
 #include <stout/os/mkdir.hpp>
+#include <stout/os/rm.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -74,6 +75,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
 
   Try<Nothing> saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig);
   Try<ContainerConfig> restoreContainerContext(const ContainerID& containerId);
+  Try<Nothing> cleanContainerContext(const ContainerID& containerId);
 
   string m_name;
   Option<Command> m_prepareCommand;
@@ -122,6 +124,12 @@ Try<ContainerConfig> CommandIsolatorProcess::restoreContainerContext(const Conta
         return Error("Unable to deserialize ContainerConfig: " + containerConfig.error());
     }
     return containerConfig.get();
+}
+
+Try<Nothing> CommandIsolatorProcess::cleanContainerContext(const ContainerID& containerId) {
+    m_infos.erase(containerId);
+    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
+    return os::rm(context_file_path);
 }
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
@@ -307,7 +315,7 @@ process::Future<::mesos::ResourceStatistics> CommandIsolatorProcess::usage(
 process::Future<Nothing> CommandIsolatorProcess::cleanup(
     const ContainerID& containerId) {
   if (m_cleanupCommand.isNone()) {
-    m_infos.erase(containerId);
+    cleanContainerContext(containerId);
     return Nothing();
   }
 
@@ -326,7 +334,7 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
                            .run(m_cleanupCommand.get(), stringify(inputsJson));
 
-  m_infos.erase(containerId);
+  cleanContainerContext(containerId);
   if (output.isError()) {
     return Failure(output.error());
   }
