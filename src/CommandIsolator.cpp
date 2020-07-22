@@ -73,7 +73,8 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
     return stats;
   }
 
-  Try<Nothing> saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig);
+  Try<Nothing> saveContainerContext(const ContainerID& containerId,
+                                    const ContainerConfig& containerConfig);
   Try<ContainerConfig> restoreContainerContext(const ContainerID& containerId);
   Try<Nothing> cleanContainerContext(const ContainerID& containerId);
 
@@ -98,38 +99,48 @@ CommandIsolatorProcess::CommandIsolatorProcess(
       m_usageCommand(usageCommand),
       m_isDebugMode(isDebugMode) {}
 
-Try<Nothing> CommandIsolatorProcess::saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig) {
-    const string& context_dir = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name);
-    Result<Nothing> create_context_dir = os::mkdir(context_dir, true);
-    if (create_context_dir.isError()) {
-        return Error("Failed to create context directory for isolator " + m_name + ": " + create_context_dir.error());
-    }
-    const string& context_file_path = path::join(context_dir, stringify(containerId));
-    Result<Nothing> write_context = os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
-    if (write_context.isError()) {
-        return Error("Failed writing context file for container " + stringify(containerId) + ": " + write_context.error());
-    }
-    return Nothing();
+Try<Nothing> CommandIsolatorProcess::saveContainerContext(
+    const ContainerID& containerId, const ContainerConfig& containerConfig) {
+  const string& context_dir = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name);
+  Result<Nothing> create_context_dir = os::mkdir(context_dir, true);
+  if (create_context_dir.isError()) {
+    return Error("Failed to create context directory for isolator " + m_name +
+                 ": " + create_context_dir.error());
+  }
+  const string& context_file_path =
+      path::join(context_dir, stringify(containerId));
+  Result<Nothing> write_context =
+      os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
+  if (write_context.isError()) {
+    return Error("Failed writing context file for container " +
+                 stringify(containerId) + ": " + write_context.error());
+  }
+  return Nothing();
 }
 
-Try<ContainerConfig> CommandIsolatorProcess::restoreContainerContext(const ContainerID& containerId) {
-    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
-    Result<string> context_json = os::read(context_file_path);
-    if (context_json.isError()) {
-        return Error("Failed reading context file: " + context_json.error());
-    }
-    Result<ContainerConfig> containerConfig = 
-            jsonToProtobuf<ContainerConfig>(context_json.get());
-    if (containerConfig.isError()) {
-        return Error("Unable to deserialize ContainerConfig: " + containerConfig.error());
-    }
-    return containerConfig.get();
+Try<ContainerConfig> CommandIsolatorProcess::restoreContainerContext(
+    const ContainerID& containerId) {
+  const string& context_file_path =
+      path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
+  Result<string> context_json = os::read(context_file_path);
+  if (context_json.isError()) {
+    return Error("Failed reading context file: " + context_json.error());
+  }
+  Result<ContainerConfig> containerConfig =
+      jsonToProtobuf<ContainerConfig>(context_json.get());
+  if (containerConfig.isError()) {
+    return Error("Unable to deserialize ContainerConfig: " +
+                 containerConfig.error());
+  }
+  return containerConfig.get();
 }
 
-Try<Nothing> CommandIsolatorProcess::cleanContainerContext(const ContainerID& containerId) {
-    m_infos.erase(containerId);
-    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
-    return os::rm(context_file_path);
+Try<Nothing> CommandIsolatorProcess::cleanContainerContext(
+    const ContainerID& containerId) {
+  m_infos.erase(containerId);
+  const string& context_file_path =
+      path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
+  return os::rm(context_file_path);
 }
 
 process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
@@ -174,17 +185,19 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
 process::Future<Nothing> CommandIsolatorProcess::recover(
     const std::vector<ContainerState>& states,
     const hashset<ContainerID>& orphans) {
-    for (const ContainerState& state : states) {
-        const ContainerID& containerId = state.container_id();
-        LOG(INFO) <<"Trying to restore context for " <<stringify(containerId);
-        Result<ContainerConfig> containerConfig = restoreContainerContext(containerId);
-        if (containerConfig.isError()) {
-            LOG(ERROR) <<"Can't restore context for " <<stringify(containerId) <<": " <<containerConfig.error();
-            continue;
-        }
-        m_infos.put(containerId, containerConfig.get());
-        LOG(INFO) <<"Successfully restored context for " <<stringify(containerId);
+  for (const ContainerState& state : states) {
+    const ContainerID& containerId = state.container_id();
+    LOG(INFO) << "Trying to restore context for " << stringify(containerId);
+    Result<ContainerConfig> containerConfig =
+        restoreContainerContext(containerId);
+    if (containerConfig.isError()) {
+      LOG(ERROR) << "Can't restore context for " << stringify(containerId)
+                 << ": " << containerConfig.error();
+      continue;
     }
+    m_infos.put(containerId, containerConfig.get());
+    LOG(INFO) << "Successfully restored context for " << stringify(containerId);
+  }
   return Nothing();
 }
 
@@ -369,10 +382,9 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
 }
 
 process::Future<Nothing> CommandIsolator::recover(
-      const std::vector<ContainerState>& states,
-      const hashset<ContainerID>& orphans
-        ) {
-    return dispatch(m_process, &CommandIsolatorProcess::recover, states, orphans);
+    const std::vector<ContainerState>& states,
+    const hashset<ContainerID>& orphans) {
+  return dispatch(m_process, &CommandIsolatorProcess::recover, states, orphans);
 }
 
 process::Future<ContainerLimitation> CommandIsolator::watch(
