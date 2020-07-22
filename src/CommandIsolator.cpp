@@ -9,6 +9,7 @@
 #include <process/loop.hpp>
 #include <process/process.hpp>
 #include <process/time.hpp>
+#include <stout/os/mkdir.hpp>
 
 namespace criteo {
 namespace mesos {
@@ -96,10 +97,15 @@ CommandIsolatorProcess::CommandIsolatorProcess(
       m_isDebugMode(isDebugMode) {}
 
 Try<Nothing> CommandIsolatorProcess::saveContainerContext(const ContainerID& containerId, const ContainerConfig& containerConfig) {
-    const string& context_file_path = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name, stringify(containerId));
-    Result<Nothing> ok = os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
-    if (ok.isError()) {
-        return Error("Failed writing context file for container " + stringify(containerId) + ": " + ok.error());
+    const string& context_dir = path::join(COMMAND_ISOLATOR_STATE_DIR, m_name);
+    Result<Nothing> create_context_dir = os::mkdir(context_dir, true);
+    if (create_context_dir.isError()) {
+        return Error("Failed to create context directory for isolator " + m_name + ": " + create_context_dir.error());
+    }
+    const string& context_file_path = path::join(context_dir, stringify(containerId));
+    Result<Nothing> write_context = os::write(context_file_path, stringify(JSON::protobuf(containerConfig)));
+    if (write_context.isError()) {
+        return Error("Failed writing context file for container " + stringify(containerId) + ": " + write_context.error());
     }
     return Nothing();
 }
@@ -162,13 +168,14 @@ process::Future<Nothing> CommandIsolatorProcess::recover(
     const hashset<ContainerID>& orphans) {
     for (const ContainerState& state : states) {
         const ContainerID& containerId = state.container_id();
+        LOG(INFO) <<"Trying to restore context for " <<stringify(containerId);
         Result<ContainerConfig> containerConfig = restoreContainerContext(containerId);
         if (containerConfig.isError()) {
-            // TODO: log error
+            LOG(ERROR) <<"Can't restore context for " <<stringify(containerId) <<": " <<containerConfig.error();
             continue;
         }
         m_infos.put(containerId, containerConfig.get());
-        // TODO: log success
+        LOG(INFO) <<"Successfully restored context for " <<stringify(containerId);
     }
   return Nothing();
 }
