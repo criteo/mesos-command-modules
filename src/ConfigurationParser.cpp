@@ -99,6 +99,9 @@ Configuration ConfigurationParser::parse(
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
 
   configuration.name = getOrEmpty(p, MODULE_NAME_KEY);
+  if (configuration.name.empty())
+    throw std::runtime_error("At least on module is missing mandatory " +
+                             MODULE_NAME_KEY + " parameter");
 
   return configuration;
 }
