@@ -339,17 +339,17 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
   if (m_infos.contains(containerId)) {
     inputsJson.values["container_config"] =
         JSON::protobuf(m_infos[containerId]);
+    Try<string> output =
+        CommandRunner(m_isDebugMode, metadata)
+            .run(m_cleanupCommand.get(), stringify(inputsJson));
+
+    cleanContainerContext(containerId);
+    if (output.isError()) {
+      return Failure(output.error());
+    }
   } else {
-    LOG(WARNING)
-        << "Missing container info during cleanup of mesos-command-module.";
-  }
-
-  Try<string> output = CommandRunner(m_isDebugMode, metadata)
-                           .run(m_cleanupCommand.get(), stringify(inputsJson));
-
-  cleanContainerContext(containerId);
-  if (output.isError()) {
-    return Failure(output.error());
+    LOG(WARNING) << "Missing container info during cleanup of "
+                    "mesos-command-module, won't call command.";
   }
 
   return Nothing();

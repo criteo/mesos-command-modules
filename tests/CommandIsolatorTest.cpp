@@ -144,6 +144,24 @@ TEST_F(UnexistingCommandIsolatorTest,
   AWAIT_FAILED(future);
 }
 
+class NotPreparedCommandIsolatorTest : public CommandIsolatorTest {
+ public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(new CommandIsolator("test", Command("unexisting.sh"),
+                                       RecurrentCommand("unexisting.sh", 1, 0.1),
+                                       Command("unexisting.sh"),
+                                       Command("unexisting.sh")
+                                       ));
+  }
+};
+
+TEST_F(NotPreparedCommandIsolatorTest,
+       should_not_run_cleanup_command_and_succeed) {
+  auto future = isolator->cleanup(containerId);
+  AWAIT_READY(future);
+}
+
 class MalformedCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
