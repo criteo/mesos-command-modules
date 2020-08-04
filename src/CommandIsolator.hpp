@@ -115,6 +115,8 @@ class CommandIsolator : public ::mesos::slave::Isolator {
   virtual process::Future<::mesos::ResourceStatistics> usage(
       const ::mesos::ContainerID& containerId);
 
+  bool hasContainerContext(const ::mesos::ContainerID& containerId);
+
  private:
   CommandIsolatorProcess* m_process;
 };

@@ -11,6 +11,7 @@ using ::mesos::ContainerID;
 using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
 using ::mesos::slave::ContainerLimitation;
+using ::mesos::slave::ContainerState;
 
 class CommandIsolatorTest : public ::testing::Test {
  protected:
@@ -34,6 +35,14 @@ class CommandIsolatorTest : public ::testing::Test {
         isolator->prepare(containerId, containerConfig);
       AWAIT_FAILED(containerLaunchInfoFuture);
     }
+
+  process::Future<Nothing> recoverOneContainer() {
+    ContainerState state;
+    state.mutable_container_id()->set_value(containerId.value());
+    std::vector<ContainerState> states = {state};
+    hashset<::mesos::ContainerID> orphans;
+    return isolator->recover(states, orphans);
+  }
 
   std::unique_ptr<CommandIsolator> isolator;
 };
@@ -78,6 +87,12 @@ TEST_F(CommandIsolatorSimpleTest,
 }
 
 TEST_F(CommandIsolatorSimpleTest,
+       cleanup_should_remove_container_context) {
+  AWAIT_READY(isolator->cleanup(containerId));
+  ASSERT_FALSE(isolator->hasContainerContext(containerId));
+}
+
+TEST_F(CommandIsolatorSimpleTest,
        should_run_usage_command_and_retrieve_container_limitation) {
   auto resourceStatistics = isolator->usage(containerId);
 
@@ -86,6 +101,12 @@ TEST_F(CommandIsolatorSimpleTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 
   EXPECT_EQ(5, stats.net_snmp_statistics().tcp_stats().currestab());
+}
+
+TEST_F(CommandIsolatorSimpleTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
 }
 
 class CommandIsolatorContinuousTest : public CommandIsolatorTest {
@@ -144,6 +165,12 @@ TEST_F(UnexistingCommandIsolatorTest,
   AWAIT_FAILED(future);
 }
 
+TEST_F(UnexistingCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class NotPreparedCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
@@ -160,6 +187,12 @@ TEST_F(NotPreparedCommandIsolatorTest,
        should_not_run_cleanup_command_and_succeed) {
   auto future = isolator->cleanup(containerId);
   AWAIT_READY(future);
+}
+
+TEST_F(NotPreparedCommandIsolatorTest,
+       should_fail_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_FALSE(isolator->hasContainerContext(containerId));
 }
 
 class MalformedCommandIsolatorTest : public CommandIsolatorTest {
@@ -191,6 +224,12 @@ TEST_F(MalformedCommandIsolatorTest,
   AWAIT_READY(resourceStatistics);
 
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
+}
+
+TEST_F(MalformedCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
 }
 
 class EmptyCommandIsolatorTest : public CommandIsolatorTest {
@@ -230,6 +269,12 @@ TEST_F(EmptyCommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
+TEST_F(EmptyCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
@@ -261,6 +306,12 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
+TEST_F(IncorrectProtobufCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
@@ -286,6 +337,12 @@ TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage)
   AWAIT_READY(stats);
   EXPECT_EQ(0, stats.get().cpus_system_time_secs());
   EXPECT_TRUE(stats.get().has_timestamp());
+}
+
+TEST_F(EmptyOutputCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
 }
 
 class TimeoutCommandIsolatorTest : public CommandIsolatorTest {

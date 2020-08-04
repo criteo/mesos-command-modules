@@ -65,6 +65,10 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
     return m_cleanupCommand;
   }
 
+  inline bool hasContainerContext(const ContainerID& containerId) {
+    return m_infos.contains(containerId);
+  }
+
  private:
   inline static ::mesos::ResourceStatistics emptyStats(
       double timestamp = Clock::now().secs()) {
@@ -400,6 +404,10 @@ process::Future<Nothing> CommandIsolator::cleanup(
 process::Future<::mesos::ResourceStatistics> CommandIsolator::usage(
     const ContainerID& containerId) {
   return dispatch(m_process, &CommandIsolatorProcess::usage, containerId);
+}
+
+bool CommandIsolator::hasContainerContext(const ContainerID& containerId) {
+  return m_process->hasContainerContext(containerId);
 }
 
 const Option<Command>& CommandIsolator::prepareCommand() const {
