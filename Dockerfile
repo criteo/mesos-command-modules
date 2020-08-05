@@ -1,6 +1,6 @@
 # This image is meant to build and test the modules
 ARG BUILD_TYPE=automake
-FROM criteo/mesosbuild:1.8.1-$BUILD_TYPE
+FROM criteo/mesosbuild:1.9.0-$BUILD_TYPE
 
 ENV MESOS_BUILD_DIR=/src/mesos/build
 ENV MESOS_ROOT_DIR=/src/mesos
