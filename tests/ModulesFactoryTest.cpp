@@ -11,6 +11,10 @@ using namespace criteo::mesos;
 TEST(ModulesFactoryTest, should_create_hook_with_correct_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("hook_slave_run_task_label_decorator_command");
   var->set_value("command_slave_run_task_label_decorator");
 
@@ -36,6 +40,10 @@ TEST(ModulesFactoryTest, should_create_hook_with_correct_parameters) {
 TEST(ModulesFactoryTest, should_create_hook_with_empty_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("hook_slave_executor_environment_decorator_command");
   var->set_value("command_slave_executor_environment_decorator");
 
@@ -54,6 +62,10 @@ TEST(ModulesFactoryTest, should_create_hook_with_empty_parameters) {
 TEST(ModulesFactoryTest, should_create_isolator_with_correct_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("isolator_prepare_command");
   var->set_value("command_prepare");
 
@@ -71,6 +83,10 @@ TEST(ModulesFactoryTest, should_create_isolator_with_correct_parameters) {
 TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("isolator_prepare_command");
   var->set_value("command_prepare");
 

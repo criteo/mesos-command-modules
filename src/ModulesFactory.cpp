@@ -20,7 +20,7 @@ using std::string;
 ::mesos::slave::Isolator* createIsolator(
     const ::mesos::Parameters& parameters) {
   Configuration cfg = ConfigurationParser::parse(parameters);
-  return new CommandIsolator(cfg.prepareCommand, cfg.watchCommand,
+  return new CommandIsolator(cfg.name, cfg.prepareCommand, cfg.watchCommand,
                              cfg.cleanupCommand, cfg.usageCommand,
                              cfg.isDebugSet);
 }

@@ -11,6 +11,7 @@ using ::mesos::ContainerID;
 using ::mesos::slave::ContainerConfig;
 using ::mesos::slave::ContainerLaunchInfo;
 using ::mesos::slave::ContainerLimitation;
+using ::mesos::slave::ContainerState;
 
 class CommandIsolatorTest : public ::testing::Test {
  protected:
@@ -35,6 +36,14 @@ class CommandIsolatorTest : public ::testing::Test {
       AWAIT_FAILED(containerLaunchInfoFuture);
     }
 
+  process::Future<Nothing> recoverOneContainer() {
+    ContainerState state;
+    state.mutable_container_id()->set_value(containerId.value());
+    std::vector<ContainerState> states = {state};
+    hashset<::mesos::ContainerID> orphans;
+    return isolator->recover(states, orphans);
+  }
+
   std::unique_ptr<CommandIsolator> isolator;
 };
 
@@ -43,7 +52,7 @@ public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(
-      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+      new CommandIsolator("test", Command(g_resourcesPath + "prepare.sh"),
                           RecurrentCommand(g_resourcesPath + "watch.sh", 3, 0.1),
                           Command(g_resourcesPath + "cleanup.sh"),
                           Command(g_resourcesPath + "usage.sh")));
@@ -78,6 +87,12 @@ TEST_F(CommandIsolatorSimpleTest,
 }
 
 TEST_F(CommandIsolatorSimpleTest,
+       cleanup_should_remove_container_context) {
+  AWAIT_READY(isolator->cleanup(containerId));
+  ASSERT_FALSE(isolator->hasContainerContext(containerId));
+}
+
+TEST_F(CommandIsolatorSimpleTest,
        should_run_usage_command_and_retrieve_container_limitation) {
   auto resourceStatistics = isolator->usage(containerId);
 
@@ -88,12 +103,18 @@ TEST_F(CommandIsolatorSimpleTest,
   EXPECT_EQ(5, stats.net_snmp_statistics().tcp_stats().currestab());
 }
 
+TEST_F(CommandIsolatorSimpleTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class CommandIsolatorContinuousTest : public CommandIsolatorTest {
 public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(
-      new CommandIsolator(Command(g_resourcesPath + "prepare.sh"),
+      new CommandIsolator("test", Command(g_resourcesPath + "prepare.sh"),
                           RecurrentCommand(g_resourcesPath + "watch_continuous.sh", 3, 0.1),
                           Command(g_resourcesPath + "cleanup.sh"),
                           Command(g_resourcesPath + "usage_continuous.sh")));
@@ -122,7 +143,7 @@ class UnexistingCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(Command("unexisting.sh"),
+    isolator.reset(new CommandIsolator("test", Command("unexisting.sh"),
                                        RecurrentCommand("unexisting.sh", 1, 0.1),
                                        Command("unexisting.sh"),
                                        Command("unexisting.sh")
@@ -144,11 +165,42 @@ TEST_F(UnexistingCommandIsolatorTest,
   AWAIT_FAILED(future);
 }
 
+TEST_F(UnexistingCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
+class NotPreparedCommandIsolatorTest : public CommandIsolatorTest {
+ public:
+  void SetUp() {
+    CommandIsolatorTest::SetUp();
+    isolator.reset(new CommandIsolator("test", Command("unexisting.sh"),
+                                       RecurrentCommand("unexisting.sh", 1, 0.1),
+                                       Command("unexisting.sh"),
+                                       Command("unexisting.sh")
+                                       ));
+  }
+};
+
+TEST_F(NotPreparedCommandIsolatorTest,
+       should_not_run_cleanup_command_and_succeed) {
+  auto future = isolator->cleanup(containerId);
+  AWAIT_READY(future);
+}
+
+TEST_F(NotPreparedCommandIsolatorTest,
+       should_fail_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_FALSE(isolator->hasContainerContext(containerId));
+}
+
 class MalformedCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         Command(g_resourcesPath + "prepare_malformed.sh"),
         RecurrentCommand(g_resourcesPath + "watch_malformed.sh", 1, 0.3),
         None(),
@@ -174,11 +226,17 @@ TEST_F(MalformedCommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
+TEST_F(MalformedCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class EmptyCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
-    isolator.reset(new CommandIsolator(None(), None(), None(), None()));
+    isolator.reset(new CommandIsolator("test", None(), None(), None(), None()));
     CommandIsolatorTest::Prepare();
   }
 };
@@ -211,11 +269,18 @@ TEST_F(EmptyCommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
+TEST_F(EmptyCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class IncorrectProtobufCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         Command(g_resourcesPath + "prepare_incorrect_protobuf.sh"),
         RecurrentCommand(g_resourcesPath + "watch_incorrect_protobuf.sh", 3, 0.1),
         None(),
@@ -241,11 +306,18 @@ TEST_F(IncorrectProtobufCommandIsolatorTest,
   ::mesos::ResourceStatistics stats = resourceStatistics.get();
 }
 
+TEST_F(IncorrectProtobufCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class EmptyOutputCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), RecurrentCommand(g_resourcesPath + "watch_empty.sh", 3, 0.1), None(),
         Command(g_resourcesPath + "usage_empty.sh")
         ));
@@ -267,11 +339,18 @@ TEST_F(EmptyOutputCommandIsolatorTest, should_return_empty_stats_on_empty_usage)
   EXPECT_TRUE(stats.get().has_timestamp());
 }
 
+TEST_F(EmptyOutputCommandIsolatorTest,
+       should_recover_container) {
+  AWAIT_READY(recoverOneContainer());
+  ASSERT_TRUE(isolator->hasContainerContext(containerId));
+}
+
 class TimeoutCommandIsolatorTest : public CommandIsolatorTest {
  public:
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), None(), None(),
         Command(g_resourcesPath + "usage_timeout.sh", 1)
         ));
@@ -291,6 +370,7 @@ class LongCommandIsolatorTest : public CommandIsolatorTest {
   void SetUp() {
     CommandIsolatorTest::SetUp();
     isolator.reset(new CommandIsolator(
+        "test",
         None(), None(), None(),
         Command(g_resourcesPath + "usage_long.sh", 1)
         ));

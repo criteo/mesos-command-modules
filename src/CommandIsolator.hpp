@@ -44,7 +44,8 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @param isDebugMode If true, logs inputs and outputs of the commands,
    *   otherwise logs nothing
    */
-  explicit CommandIsolator(const Option<Command>& prepareCommand,
+  explicit CommandIsolator(const std::string& name,
+                           const Option<Command>& prepareCommand,
                            const Option<RecurrentCommand>& watchCommand,
                            const Option<Command>& cleanupCommand,
                            const Option<Command>& usageCommand,
@@ -76,6 +77,15 @@ class CommandIsolator : public ::mesos::slave::Isolator {
       const ::mesos::slave::ContainerConfig& containerConfig);
 
   /**
+   * Recover containers from the run states and containers context saved on disk
+   *
+   * @param containerId The container ID of the container to be cleaned up.
+   */
+  virtual process::Future<Nothing> recover(
+      const std::vector<::mesos::slave::ContainerState>& states,
+      const hashset<::mesos::ContainerID>& orphans);
+
+  /**
    * Run an external command on cleanup phase of a given container.
    *
    * @param containerId The container ID of the container to be cleaned up.
@@ -104,6 +114,8 @@ class CommandIsolator : public ::mesos::slave::Isolator {
   // Get resource usage of a given container
   virtual process::Future<::mesos::ResourceStatistics> usage(
       const ::mesos::ContainerID& containerId);
+
+  bool hasContainerContext(const ::mesos::ContainerID& containerId);
 
  private:
   CommandIsolatorProcess* m_process;
