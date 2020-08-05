@@ -100,8 +100,8 @@ Configuration ConfigurationParser::parse(
 
   configuration.name = getOrEmpty(p, MODULE_NAME_KEY);
   if (configuration.name.empty())
-    throw std::runtime_error("At least on module is missing mandatory " +
-                             MODULE_NAME_KEY + " parameter");
+    throw std::runtime_error(MODULE_NAME_KEY +
+                             " parameter is mandatory for all defined modules");
 
   return configuration;
 }
