@@ -7,6 +7,10 @@ using namespace criteo::mesos;
 TEST(ConfigurationParserTest, should_create_configuration) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("hook_slave_run_task_label_decorator_command");
   var->set_value("command_slave_run_task_label_decorator");
   var = parameters.add_parameter();
@@ -59,7 +63,10 @@ TEST(ConfigurationParserTest, should_create_configuration) {
 TEST(ConfigurationParserTest, should_create_configuration_with_optional_params) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
 
+  var = parameters.add_parameter();
   var->set_key("hook_slave_executor_environment_decorator_command");
   var->set_value("command_slave_executor_environment_decorator");
 
@@ -82,6 +89,10 @@ TEST(ConfigurationParserTest, should_create_configuration_with_optional_params) 
 TEST(ConfigurationParserTest, should_set_debug_only_with_true_value) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("debug");
   var->set_value("true");
 
@@ -100,6 +111,10 @@ TEST(ConfigurationParserTest, should_set_debug_only_with_true_value) {
 TEST(ConfigurationParserTest, should_throw_on_timeout_parsing_error) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("hook_slave_executor_environment_decorator_command");
   var->set_value("command_slave_executor_environment_decorator");
 
@@ -120,6 +135,10 @@ TEST(ConfigurationParserTest, should_throw_on_timeout_parsing_error) {
 TEST(ConfigurationParserTest, should_throw_on_timeout_out_of_range) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  var = parameters.add_parameter();
   var->set_key("hook_slave_executor_environment_decorator_command");
   var->set_value("command_slave_executor_environment_decorator");
 
@@ -134,6 +153,22 @@ TEST(ConfigurationParserTest, should_throw_on_timeout_out_of_range) {
     SUCCEED() << "Thrown out_of_range.";
   } catch (...) {
     FAIL() << "Expected std::out_of_range.";
+  }
+}
+
+TEST(ConfigurationParserTest, should_throw_on_module_name_missing) {
+  ::mesos::Parameters parameters;
+  auto var = parameters.add_parameter();
+  var->set_key("foo");
+  var->set_value("bar");
+
+  try {
+    Configuration cfg = ConfigurationParser::parse(parameters);
+    FAIL() << "Expected std::runtime_error for missing module_name.";
+  } catch (const std::runtime_error&) {
+    SUCCEED() << "Thrown missing module_name";
+  } catch (...) {
+    FAIL() << "Expected std::runtime_error for missing module_name.";
   }
 }
 

@@ -26,6 +26,8 @@ const string USAGE_KEY = "isolator_usage";
 // Additional parameters.
 const string DEBUG_KEY = "debug";  // enable debug mode.
 
+const string MODULE_NAME_KEY = "module_name";
+
 string getOrEmpty(const map<string, string>& kv, const string& key) {
   string command;
   auto it = kv.find(key);
@@ -95,6 +97,12 @@ Configuration ConfigurationParser::parse(
   configuration.usageCommand = extractCommand(p, USAGE_KEY);
 
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
+
+  configuration.name = getOrEmpty(p, MODULE_NAME_KEY);
+  if (configuration.name.empty())
+    throw std::runtime_error(MODULE_NAME_KEY +
+                             " parameter is mandatory for all defined modules");
+
   return configuration;
 }
 
