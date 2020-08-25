@@ -9,6 +9,8 @@ namespace mesos {
 
 using namespace process;
 using namespace mesos;
+
+using std::string;
 using ::mesos::modules::Module;
 using ::mesos::Resource;
 using ::mesos::Resources;
@@ -23,7 +25,8 @@ using process::terminate;
 class OpportunisticResourceEstimatorProcess
     : public process::Process<OpportunisticResourceEstimatorProcess> {
  public:
-  OpportunisticResourceEstimatorProcess();
+  OpportunisticResourceEstimatorProcess(
+      const Option<Command>& oversubscribableCommand);
 
   Future<Resources> oversubscribable() {
     return (usage().then(
@@ -32,10 +35,8 @@ class OpportunisticResourceEstimatorProcess
 
   // look for underscore meaning private ?
   Future<Resources> _oversubscribable() {
+    // Command hook should take place here
     Resources allocatedRevocable;
-    /*foreach (const ResourceUsage::Executor& executor, usage.executors()) {
-      allocatedRevocable += Resources(executor.allocated()).revocable();
-    }*/
     auto unallocated = [](const Resources& resources) {
       Resources result = resources;
       result.unallocate();
@@ -46,18 +47,26 @@ class OpportunisticResourceEstimatorProcess
   }
 
  protected:
+  const string m_name;
   const lambda::function<Future<ResourceUsage>()> usage;
   const ::mesos::Resources totalRevocable;
+
+ private:
+  Option<Command> m_oversubscribableCommand;
+  bool m_isDebugMode;
 };
 
 // resource estimator class is define in .hpp
 OpportunisticResourceEstimator::OpportunisticResourceEstimator(
-    const Resources& _totalRevocable) {
+    const string& name, const Option<Command>& oversubscribable,
+    const Option<Command>& usageCommand, bool isDebugMode) {
   // Mark all resources as revocable.
-  foreach (Resource resource, _totalRevocable) {
-    resource.mutable_revocable();
-    totalRevocable += resource;
-  }
+  printf("Job done\n");
+  /*
+  : m_process(new OpportunisticResourceEstimatorProcess(name,
+  oversubscribable,usageCommand, isDebugMode)){
+         spawn(m_process);
+   */
 }
 
 // tild mean it's a destructor
@@ -70,6 +79,7 @@ OpportunisticResourceEstimator::~OpportunisticResourceEstimator() {
 
 Try<Nothing> OpportunisticResourceEstimator::initialize(
     const lambda::function<Future<::mesos::ResourceUsage>()>& usage) {
+  printf("Opportunistic Resource Estimator Initialized");
   return Nothing();
 }
 
@@ -77,7 +87,7 @@ Future<Resources> OpportunisticResourceEstimator::oversubscribable() {
   if (process == nullptr) {
     return Failure("Opportunistic resource estimator is not initialized");
   }
-
+  // call oversubscribable in process
   return dispatch(process,
                   &OpportunisticResourceEstimatorProcess::oversubscribable);
 }

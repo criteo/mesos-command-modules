@@ -1,6 +1,8 @@
 #ifndef __OPPORTUNISTIC_RESOURCE_ESTIMATOR_HPP__
 #define __OPPORTUNISTIC_RESOURCE_ESTIMATOR_HPP__
 
+#include <string>
+
 #include <mesos/module/resource_estimator.hpp>
 #include <mesos/resources.hpp>
 #include <process/process.hpp>
@@ -24,7 +26,9 @@ class OpportunisticResourceEstimator
     : public ::mesos::slave::ResourceEstimator {
  public:
   explicit OpportunisticResourceEstimator(
-      const ::mesos::Resources& _totalRevocable);
+      const std::string& name, const Option<Command>& oversubscribable,
+      const Option<Command>& usageCommand, bool isDebugMode);
+  // const ::mesos::Resources& _totalRevocable);
 
   virtual Try<Nothing> initialize(
       const lambda::function<process::Future<::mesos::ResourceUsage>()>& usage);

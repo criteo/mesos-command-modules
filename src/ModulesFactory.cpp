@@ -3,6 +3,7 @@
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
 #include "ConfigurationParser.hpp"
+#include "OpportunisticResourceEstimator.hpp"
 
 namespace criteo {
 namespace mesos {
@@ -23,6 +24,14 @@ using std::string;
   return new CommandIsolator(cfg.name, cfg.prepareCommand, cfg.watchCommand,
                              cfg.cleanupCommand, cfg.usageCommand,
                              cfg.isDebugSet);
+}
+
+::mesos::slave::ResourceEstimator* createResourceEstimator(
+    const ::mesos::Parameters& parameters) {
+  printf("entrypoint");
+  Configuration cfg = ConfigurationParser::parse(parameters);
+  return new OpportunisticResourceEstimator(cfg.name, cfg.prepareCommand,
+                                            cfg.usageCommand, cfg.isDebugSet);
 }
 }  // namespace mesos
 }  // namespace criteo
@@ -76,3 +85,20 @@ CRITEO_ISOLATOR(8)
 CRITEO_ISOLATOR(9)
 CRITEO_ISOLATOR(10)
 CRITEO_ISOLATOR(11)
+
+mesos::modules::Module<::mesos::slave::ResourceEstimator>
+    com_criteo_mesos_OpportunisticResourceEstimator(
+        MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos",
+        "mesos@criteo.com", "Opportunistic resource estimator module", nullptr,
+        criteo::mesos::createResourceEstimator);
+
+// to allow user to have separated resource estimator based on
+// OpportunisticResourceEstimator
+#define CRITEO_OPPORTUNISTIC_RESOURCE_ESTIMATOR(INSTANCE)          \
+  mesos::modules::Module<::mesos::slave::ResourceEstimator>        \
+      com_criteo_mesos_opportunisticResourceEstimator##INSTANCE(   \
+          MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos", \
+          "mesos@criteo.com", "Command isolator module", nullptr,  \
+          criteo::mesos::createResourceEstimator);
+
+CRITEO_OPPORTUNISTIC_RESOURCE_ESTIMATOR(2)
