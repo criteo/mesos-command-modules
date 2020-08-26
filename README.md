@@ -24,6 +24,8 @@ cluster and add the following libraries with whatever commands you want
 to run for each type of events. All commands are optional so they can be
 removed from this configuration.
 
+For each module definition, `module_name` key is mandatory.
+
 Note: the `debug` parameter is optional and can be set to true if you want to
 enable the logging of all inputs received and all outputs produced by the
 commands.
@@ -49,6 +51,10 @@ commands.
             {
               "key": "hook_slave_remove_executor_hook_command",
               "value": "/opt/mesos/modules/slaveRemoveExecutorHook.sh"
+            },
+            {
+              "key": "module_name",
+              "value": "example_hook"
             },
             {
               "key": "debug",
@@ -78,6 +84,10 @@ commands.
             {
               "key": "isolator_watch_frequence",
               "value": "10"
+            },
+            {
+              "key": "module_name",
+              "value": "example_isolator"
             },
             {
               "key": "debug",
