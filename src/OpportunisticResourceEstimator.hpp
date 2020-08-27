@@ -26,8 +26,7 @@ class OpportunisticResourceEstimator
     : public ::mesos::slave::ResourceEstimator {
  public:
   explicit OpportunisticResourceEstimator(
-      const std::string& name, const Option<Command>& oversubscribable,
-      const Option<Command>& usageCommand, bool isDebugMode);
+      const Option<Command>& oversubscribable, bool isDebugMode);
   // const ::mesos::Resources& _totalRevocable);
 
   virtual Try<Nothing> initialize(

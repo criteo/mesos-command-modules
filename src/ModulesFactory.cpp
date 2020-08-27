@@ -30,8 +30,7 @@ using std::string;
     const ::mesos::Parameters& parameters) {
   LOG(INFO) << "!!!!!!!!!!!!entrypoint!!!!!!!!!!!!!!";
   Configuration cfg = ConfigurationParser::parse(parameters);
-  return new OpportunisticResourceEstimator(cfg.name, cfg.prepareCommand,
-                                            cfg.usageCommand, cfg.isDebugSet);
+  return new OpportunisticResourceEstimator(cfg.prepareCommand, cfg.isDebugSet);
 }
 }  // namespace mesos
 }  // namespace criteo

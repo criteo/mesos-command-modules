@@ -26,7 +26,7 @@ class OpportunisticResourceEstimatorProcess
     : public process::Process<OpportunisticResourceEstimatorProcess> {
  public:
   OpportunisticResourceEstimatorProcess(
-      const Option<Command>& oversubscribableCommand);
+      const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
   Future<Resources> oversubscribable() {
     return (usage().then(
@@ -51,7 +51,7 @@ class OpportunisticResourceEstimatorProcess
   }
 
  protected:
-  const string m_name;
+  // const string m_name;
   const lambda::function<Future<ResourceUsage>()> usage;
   const ::mesos::Resources totalRevocable;
 
@@ -62,19 +62,11 @@ class OpportunisticResourceEstimatorProcess
 
 // resource estimator class is define in .hpp
 OpportunisticResourceEstimator::OpportunisticResourceEstimator(
-    const string& name, const Option<Command>& oversubscribable,
-    const Option<Command>& usageCommand, bool isDebugMode) {
-  // Mark all resources as revocable.
-  /*foreach (Resource resource, _totalRevocable) {
-    resource.mutable_revocable();
-    totalRevocable += resource;
-  }*/
+    const Option<Command>& oversubscribable, bool isDebugMode)
+    : process(new OpportunisticResourceEstimatorProcess(oversubscribable,
+                                                        isDebugMode)) {
+  spawn(process);
   LOG(INFO) << "!!!!!!!!!!! RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
-  /*
-  : m_process(new OpportunisticResourceEstimatorProcess(name,
-  oversubscribable,usageCommand, isDebugMode)){
-         spawn(m_process);
-   */
 }
 
 // tild mean it's a destructor
@@ -87,7 +79,7 @@ OpportunisticResourceEstimator::~OpportunisticResourceEstimator() {
 
 Try<Nothing> OpportunisticResourceEstimator::initialize(
     const lambda::function<Future<::mesos::ResourceUsage>()>& usage) {
-  printf("Opportunistic Resource Estimator Initialized");
+  LOG(INFO) << "Opportunistic Resource Estimator Initialized";
   return Nothing();
 }
 
