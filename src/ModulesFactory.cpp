@@ -28,7 +28,7 @@ using std::string;
 
 ::mesos::slave::ResourceEstimator* createResourceEstimator(
     const ::mesos::Parameters& parameters) {
-  printf("entrypoint");
+  LOG(INFO) << "!!!!!!!!!!!!entrypoint!!!!!!!!!!!!!!";
   Configuration cfg = ConfigurationParser::parse(parameters);
   return new OpportunisticResourceEstimator(cfg.name, cfg.prepareCommand,
                                             cfg.usageCommand, cfg.isDebugSet);

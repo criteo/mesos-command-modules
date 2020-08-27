@@ -35,8 +35,12 @@ class OpportunisticResourceEstimatorProcess
 
   // look for underscore meaning private ?
   Future<Resources> _oversubscribable() {
+    // this is the function that should do all the real work
     // Command hook should take place here
     Resources allocatedRevocable;
+    /*foreach (const ResourceUsage::Executor& executor, usage.executors()) {
+      allocatedRevocable += Resources(executor.allocated()).revocable();
+    }*/
     auto unallocated = [](const Resources& resources) {
       Resources result = resources;
       result.unallocate();
@@ -61,7 +65,11 @@ OpportunisticResourceEstimator::OpportunisticResourceEstimator(
     const string& name, const Option<Command>& oversubscribable,
     const Option<Command>& usageCommand, bool isDebugMode) {
   // Mark all resources as revocable.
-  printf("Job done\n");
+  /*foreach (Resource resource, _totalRevocable) {
+    resource.mutable_revocable();
+    totalRevocable += resource;
+  }*/
+  LOG(INFO) << "!!!!!!!!!!! RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
   /*
   : m_process(new OpportunisticResourceEstimatorProcess(name,
   oversubscribable,usageCommand, isDebugMode)){
@@ -84,6 +92,8 @@ Try<Nothing> OpportunisticResourceEstimator::initialize(
 }
 
 Future<Resources> OpportunisticResourceEstimator::oversubscribable() {
+  // this should be the repeat function that send the resources
+  // by callin gthe process
   if (process == nullptr) {
     return Failure("Opportunistic resource estimator is not initialized");
   }
