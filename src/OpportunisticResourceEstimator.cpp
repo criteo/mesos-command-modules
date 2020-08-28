@@ -53,7 +53,7 @@ class OpportunisticResourceEstimatorProcess
  protected:
   // const string m_name;
   const lambda::function<Future<ResourceUsage>()> usage;
-  const ::mesos::Resources totalRevocable;
+  ::mesos::Resources totalRevocable;
 
  private:
   Option<Command> m_oversubscribableCommand;
@@ -66,13 +66,12 @@ OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
     : m_oversubscribableCommand(oversubscribableCommand),
       m_isDebugMode(isDebugMode) {
   // Mock resources for totalrevocable
-  /*Try<Resources> _resources = ::mesos::Resources::parse(
+  Try<Resources> _resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
       "8}}]");
-  if (_resources.isError()) {
-    totalRevocable = nullptr;
+  if (!_resources.isError()) {
+    totalRevocable = _resources.get();
   }
-  totalRevocable = _resources.get().get();*/
 }
 
 // resource estimator class is define in .hpp
