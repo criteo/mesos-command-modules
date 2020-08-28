@@ -60,13 +60,29 @@ class OpportunisticResourceEstimatorProcess
   bool m_isDebugMode;
 };
 
+// forbid declaration on global scope ?
+OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
+    const Option<Command>& oversubscribableCommand, bool isDebugMode)
+    : m_oversubscribableCommand(oversubscribableCommand),
+      m_isDebugMode(isDebugMode) {
+  // Mock resources for totalrevocable
+  /*Try<Resources> _resources = ::mesos::Resources::parse(
+      "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
+      "8}}]");
+  if (_resources.isError()) {
+    totalRevocable = nullptr;
+  }
+  totalRevocable = _resources.get().get();*/
+}
+
 // resource estimator class is define in .hpp
 OpportunisticResourceEstimator::OpportunisticResourceEstimator(
     const Option<Command>& oversubscribable, bool isDebugMode)
     : process(new OpportunisticResourceEstimatorProcess(oversubscribable,
                                                         isDebugMode)) {
   spawn(process);
-  LOG(INFO) << "!!!!!!!!!!! RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
+
+  LOG(INFO) << "!!!!!!!!!!!! RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
 }
 
 // tild mean it's a destructor
