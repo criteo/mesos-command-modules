@@ -28,27 +28,23 @@ class OpportunisticResourceEstimatorProcess
   OpportunisticResourceEstimatorProcess(
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
-  Future<Resources> oversubscribable() {
-    return (usage().then(
-        defer(self(), &Self::_oversubscribable)));  //, lambda::_1));
-  }
+  virtual process::Future<Resources> oversubscribable(); /* {
+     // do the thing here
+     if (m_oversubscribableCommand.isNone()) {
+       return None();
+     }
+     JSON::Object inputsJson;
+     logging::Metadata metadata = {0, "overscubribable"};
 
-  // look for underscore meaning private ?
-  Future<Resources> _oversubscribable() {
-    // this is the function that should do all the real work
-    // Command hook should take place here
-    Resources allocatedRevocable;
-    /*foreach (const ResourceUsage::Executor& executor, usage.executors()) {
-      allocatedRevocable += Resources(executor.allocated()).revocable();
-    }*/
-    auto unallocated = [](const Resources& resources) {
-      Resources result = resources;
-      result.unallocate();
-      return result;
-    };
+     Try<string> output =
+         CommandRunner(m_isDebugMode, metadata)
+             .run(m_oversuscribable.get(), stringify(inputsJson));
+     if (ouput.isError()) {
+       return Failure(output.error());
+     }
 
-    return totalRevocable - unallocated(allocatedRevocable);
-  }
+     return totalRevocable;
+   }*/
 
  protected:
   // const string m_name;
@@ -72,6 +68,24 @@ OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
   if (!_resources.isError()) {
     totalRevocable = _resources.get();
   }
+}
+
+Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
+  // do the thing here
+  if (m_oversubscribableCommand.isNone()) {
+    Try<Resources> _resources = ::mesos::Resources::parse("[{}]");
+    return _resources;
+  }
+  JSON::Object inputsJson;
+  logging::Metadata metadata = {0, "overscubribable"};
+
+  Try<string> output =
+      CommandRunner(m_isDebugMode, metadata)
+          .run(m_oversubscribableCommand.get(), stringify(inputsJson));
+  if (output.isError()) {
+    return Failure(output.error());
+  }
+  return totalRevocable;
 }
 
 // resource estimator class is define in .hpp
