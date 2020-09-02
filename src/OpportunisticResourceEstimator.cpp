@@ -11,6 +11,7 @@ using namespace process;
 using namespace mesos;
 
 using std::string;
+
 using ::mesos::modules::Module;
 using ::mesos::Resource;
 using ::mesos::Resources;
@@ -28,23 +29,7 @@ class OpportunisticResourceEstimatorProcess
   OpportunisticResourceEstimatorProcess(
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
-  virtual process::Future<Resources> oversubscribable(); /* {
-     // do the thing here
-     if (m_oversubscribableCommand.isNone()) {
-       return None();
-     }
-     JSON::Object inputsJson;
-     logging::Metadata metadata = {0, "overscubribable"};
-
-     Try<string> output =
-         CommandRunner(m_isDebugMode, metadata)
-             .run(m_oversuscribable.get(), stringify(inputsJson));
-     if (ouput.isError()) {
-       return Failure(output.error());
-     }
-
-     return totalRevocable;
-   }*/
+  virtual process::Future<Resources> oversubscribable();
 
  protected:
   // const string m_name;
@@ -64,28 +49,44 @@ OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
   // Mock resources for totalrevocable
   Try<Resources> _resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
-      "8}}]");
+      "\"8\"}}]");
   if (!_resources.isError()) {
     totalRevocable = _resources.get();
   }
 }
 
 Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
-  // do the thing here
-  if (m_oversubscribableCommand.isNone()) {
-    Try<Resources> _resources = ::mesos::Resources::parse("[{}]");
-    return _resources;
-  }
-  JSON::Object inputsJson;
-  logging::Metadata metadata = {0, "overscubribable"};
+  // here the resource estimator doing
+  // Mocking a resources to have valid return
+  Try<Resources> _resources = ::mesos::Resources::parse(
+      "[{\"name\" : \"cpus\", \"type\":\"SCALAR\", \"scalar\" : {\"value\" : "
+      "\"0\"}}]");
 
-  Try<string> output =
-      CommandRunner(m_isDebugMode, metadata)
-          .run(m_oversubscribableCommand.get(), stringify(inputsJson));
-  if (output.isError()) {
-    return Failure(output.error());
+  if (m_oversubscribableCommand.isNone()) {
+    LOG(INFO) << "!!!!!!!!!!NO COMMAND!!!!!!!!!!!!!";
+    return totalRevocable;
   }
-  return totalRevocable;
+  LOG(INFO) << "!!!!!!!!COMMAND FOUND toto!!!!!!!!";
+  // JSON Doesn't have protobuf member
+  // JSON::Object inputsJson;
+  // inputsJson.values["Resources"] = JSON::protobuf(totalRevocable);
+  logging::Metadata metadata = {"0", "oversubscribable"};
+  LOG(INFO) << "!!! METADATA DONE";
+
+  CommandRunner cmdrunner = CommandRunner(m_isDebugMode, metadata);
+
+  LOG(INFO) << "!!! Cmdrunner init";
+  string json =
+      "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
+      "\"4\"}}]";
+
+  Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), json);
+  LOG(INFO) << "!!!PASSED THE PARSER!!!!!!!!!!";
+  if (output.isError()) {
+    return totalRevocable;
+    // return Error(output.error());
+  }
+  return _resources;
 }
 
 // resource estimator class is define in .hpp
@@ -95,7 +96,7 @@ OpportunisticResourceEstimator::OpportunisticResourceEstimator(
                                                         isDebugMode)) {
   spawn(process);
 
-  LOG(INFO) << "!!!!!!!!!!!! RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
+  LOG(INFO) << "!!!!!!!!!!!!RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
 }
 
 // tild mean it's a destructor
