@@ -1,5 +1,6 @@
 #include "OpportunisticResourceEstimator.hpp"
 #include "CommandRunner.hpp"
+#include "Helpers.hpp"
 
 #include <process/defer.hpp>
 #include <process/dispatch.hpp>
@@ -49,7 +50,7 @@ OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
   // Mock resources for totalrevocable
   Try<Resources> _resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
-      "\"8\"}}]");
+      "\"8\"}, \"role\" : \"*\", \"revocable\" : {}}]");
   if (!_resources.isError()) {
     totalRevocable = _resources.get();
   }
@@ -60,11 +61,11 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   // Mocking a resources to have valid return
   Try<Resources> _resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\":\"SCALAR\", \"scalar\" : {\"value\" : "
-      "\"0\"}}]");
+      "\"4\", \"role\" : \"*\", \"revocable\" : {}}}]");
 
   if (m_oversubscribableCommand.isNone()) {
     LOG(INFO) << "!!!!!!!!!!NO COMMAND!!!!!!!!!!!!!";
-    return totalRevocable;
+    return _resources;
   }
   LOG(INFO) << "!!!!!!!!COMMAND FOUND toto!!!!!!!!";
   // JSON Doesn't have protobuf member
@@ -82,11 +83,19 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
 
   Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), json);
   LOG(INFO) << "!!!PASSED THE PARSER!!!!!!!!!!";
+
+  // need to set a new function for resources V
+  // IsInitialized and InitializationErrorString
+  // Result<Resources> cmdresources = jsonToProtobuf<Resources>(output.get());
+  LOG(INFO) << "ouput feeback: " << output.get();
+
   if (output.isError()) {
-    return totalRevocable;
+    return _resources;
     // return Error(output.error());
   }
-  return _resources;
+  // returning Resources type inconsistantly crash the agent
+  // need to investigate
+  return totalRevocable;
 }
 
 // resource estimator class is define in .hpp
