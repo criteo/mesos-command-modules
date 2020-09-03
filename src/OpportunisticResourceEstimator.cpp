@@ -87,6 +87,7 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   // need to set a new function for resources V
   // IsInitialized and InitializationErrorString
   // Result<Resources> cmdresources = jsonToProtobuf<Resources>(output.get());
+  Try<Resources> cmdresources = ::mesos::Resources::parse(output.get());
   LOG(INFO) << "ouput feeback: " << output.get();
 
   if (output.isError()) {
@@ -95,7 +96,7 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   }
   // returning Resources type inconsistantly crash the agent
   // need to investigate
-  return totalRevocable;
+  return cmdresources;
 }
 
 // resource estimator class is define in .hpp
