@@ -77,11 +77,11 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   CommandRunner cmdrunner = CommandRunner(m_isDebugMode, metadata);
 
   LOG(INFO) << "!!! Cmdrunner init";
-  string json =
+  string input =
       "[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : "
       "\"4\"}}]";
 
-  Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), json);
+  Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), input);
   LOG(INFO) << "!!!PASSED THE PARSER!!!!!!!!!!";
 
   // need to set a new function for resources V
