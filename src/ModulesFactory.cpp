@@ -90,14 +90,3 @@ mesos::modules::Module<::mesos::slave::ResourceEstimator>
         MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos",
         "mesos@criteo.com", "Opportunistic resource estimator module", nullptr,
         criteo::mesos::createResourceEstimator);
-
-// to allow user to have separated resource estimator based on
-// OpportunisticResourceEstimator
-#define CRITEO_OPPORTUNISTIC_RESOURCE_ESTIMATOR(INSTANCE)          \
-  mesos::modules::Module<::mesos::slave::ResourceEstimator>        \
-      com_criteo_mesos_opportunisticResourceEstimator##INSTANCE(   \
-          MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos", \
-          "mesos@criteo.com", "Command isolator module", nullptr,  \
-          criteo::mesos::createResourceEstimator);
-
-CRITEO_OPPORTUNISTIC_RESOURCE_ESTIMATOR(2)
