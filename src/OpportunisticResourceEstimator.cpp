@@ -2,6 +2,8 @@
 #include "CommandRunner.hpp"
 #include "Helpers.hpp"
 
+#include <google/protobuf/text_format.h>
+
 #include <process/defer.hpp>
 #include <process/dispatch.hpp>
 
@@ -28,9 +30,12 @@ class OpportunisticResourceEstimatorProcess
     : public process::Process<OpportunisticResourceEstimatorProcess> {
  public:
   OpportunisticResourceEstimatorProcess(
+      const lambda::function<Future<ResourceUsage>()>& _usage,
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
   virtual process::Future<Resources> oversubscribable();
+  virtual process::Future<Resources> _oversubscribable(
+      const ResourceUsage& usage);
 
  protected:
   // const string m_name;
@@ -41,13 +46,15 @@ class OpportunisticResourceEstimatorProcess
   bool m_isDebugMode;
 };
 
-// forbid declaration on global scope ?
 OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
+    const lambda::function<process::Future<ResourceUsage>()>& _usage,
     const Option<Command>& oversubscribableCommand, bool isDebugMode)
-    : m_oversubscribableCommand(oversubscribableCommand),
+    : usage(_usage),
+      m_oversubscribableCommand(oversubscribableCommand),
       m_isDebugMode(isDebugMode) {}
 
-Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
+Future<Resources> OpportunisticResourceEstimatorProcess::_oversubscribable(
+    const ResourceUsage& usage) {
   // here the resource estimator doing
   // Mocking a resources to have valid return
   Try<Resources> _resources = ::mesos::Resources::parse(
@@ -64,12 +71,15 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   CommandRunner cmdrunner = CommandRunner(m_isDebugMode, metadata);
 
   LOG(INFO) << "!!! Cmdrunner init";
-  string input = "ok";
+  string input;  //= "hey";
+  google::protobuf::TextFormat::PrintToString(usage, &input);
 
   Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), input);
   LOG(INFO) << "!!!PASSED THE PARSER!!!!!!!!!!";
 
   Try<Resources> _cmdresources = ::mesos::Resources::parse(output.get());
+  // if (_cmdresources.get().isError()) return
+  // Error(_cmdresources.get().error());
   Resources cmdresources = _cmdresources.get();
   Resources revocable{};
   foreach (Resource resource, cmdresources) {
@@ -82,14 +92,15 @@ Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
   }
   return revocable;
 }
+Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
+  return usage().then(defer(self(), &Self::_oversubscribable, lambda::_1));
+}
 
 // resource estimator class is define in .hpp
 OpportunisticResourceEstimator::OpportunisticResourceEstimator(
     const Option<Command>& _oversubscribable, bool isDebugMode)
     : m_oversubscribable(_oversubscribable), m_isDebugMode(isDebugMode) {
   LOG(INFO) << "!!!!!!!!!!!!RESOURCE ESTIMATOR IN ACTION !!!!!!!!!!!";
-  LOG(INFO) << ">>>>>>>>>>" << m_oversubscribable.get().command();
-  LOG(INFO) << "<<<<<<<<<<" << _oversubscribable.get().command();
 }
 
 // tild mean it's a destructor
@@ -101,11 +112,10 @@ OpportunisticResourceEstimator::~OpportunisticResourceEstimator() {
 }
 
 Try<Nothing> OpportunisticResourceEstimator::initialize(
-    const lambda::function<Future<::mesos::ResourceUsage>()>& usage) {
-  LOG(INFO) << "==============Crash afte this";
-  LOG(INFO) << "<<<<<<<<<<<<<<" << m_oversubscribable.get().command();
-  process = new OpportunisticResourceEstimatorProcess(m_oversubscribable,
-                                                      m_isDebugMode);
+    const lambda::function<Future<::mesos::ResourceUsage>()>& _usage) {
+  LOG(INFO) << "###################Initializing";
+  process = new OpportunisticResourceEstimatorProcess(
+      _usage, m_oversubscribable, m_isDebugMode);
   spawn(process);
 
   LOG(INFO) << "Opportunistic Resource Estimator Initialized";
