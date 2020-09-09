@@ -27,7 +27,6 @@ class OpportunisticResourceEstimator
  public:
   explicit OpportunisticResourceEstimator(
       const Option<Command>& oversubscribable, bool isDebugMode);
-  // const ::mesos::Resources& _totalRevocable);
 
   virtual Try<Nothing> initialize(
       const lambda::function<process::Future<::mesos::ResourceUsage>()>& usage);
@@ -36,7 +35,7 @@ class OpportunisticResourceEstimator
   virtual process::Future<::mesos::Resources> oversubscribable();
 
  private:
-  ::mesos::Resources totalRevocable;
+  const Option<Command> m_oversubscribable;
   OpportunisticResourceEstimatorProcess* process;
   bool m_isDebugMode;
 };
