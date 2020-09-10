@@ -113,7 +113,7 @@ OpportunisticResourceEstimator::~OpportunisticResourceEstimator() {
 
 Try<Nothing> OpportunisticResourceEstimator::initialize(
     const lambda::function<Future<::mesos::ResourceUsage>()>& _usage) {
-  LOG(INFO) << "###################Initializing";
+  LOG(INFO) << "########Initializing#######";
   process = new OpportunisticResourceEstimatorProcess(
       _usage, m_oversubscribable, m_isDebugMode);
   spawn(process);
