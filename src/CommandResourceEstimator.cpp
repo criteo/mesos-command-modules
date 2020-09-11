@@ -50,10 +50,10 @@ CommandResourceEstimatorProcess::CommandResourceEstimatorProcess(
 Resources CommandResourceEstimatorProcess::m_oversubscribable(
     const ResourceUsage& m_usage) {
   // Mocking a resources to have valid return
-  Try<Resources> _resources = ::mesos::Resources::parse(
+  Try<Resources> l_resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\":\"SCALAR\", \"scalar\" : {\"value\" : "
       "\"0\"}, \"role\" : \"*\"}]");
-  Resources resources = _resources.get();
+  Resources resources = l_resources.get();
 
   if (m_oversubscribableCommand.isNone()) {
     return resources;
@@ -73,9 +73,9 @@ Resources CommandResourceEstimatorProcess::m_oversubscribable(
     return resources;
   }
 
-  Try<Resources> _cmdresources = ::mesos::Resources::parse(output.get());
+  Try<Resources> l_cmdresources = ::mesos::Resources::parse(output.get());
 
-  Resources cmdresources = _cmdresources.get();
+  Resources cmdresources = l_cmdresources.get();
   Resources revocable{};
   foreach (Resource resource, cmdresources) {
     resource.mutable_revocable();
