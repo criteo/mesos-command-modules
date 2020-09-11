@@ -2,8 +2,8 @@
 
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
+#include "CommandResourceEstimator.hpp"
 #include "ConfigurationParser.hpp"
-#include "OpportunisticResourceEstimator.hpp"
 
 namespace criteo {
 namespace mesos {
@@ -29,7 +29,8 @@ using std::string;
 ::mesos::slave::ResourceEstimator* createResourceEstimator(
     const ::mesos::Parameters& parameters) {
   Configuration cfg = ConfigurationParser::parse(parameters);
-  return new OpportunisticResourceEstimator(cfg.prepareCommand, cfg.isDebugSet);
+  return new CommandResourceEstimator(cfg.oversubscribableCommand,
+                                      cfg.isDebugSet);
 }
 }  // namespace mesos
 }  // namespace criteo
@@ -85,7 +86,7 @@ CRITEO_ISOLATOR(10)
 CRITEO_ISOLATOR(11)
 
 mesos::modules::Module<::mesos::slave::ResourceEstimator>
-    com_criteo_mesos_OpportunisticResourceEstimator(
+    com_criteo_mesos_CommandResourceEstimator(
         MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos",
-        "mesos@criteo.com", "Opportunistic resource estimator module", nullptr,
+        "mesos@criteo.com", "Command resource estimator module", nullptr,
         criteo::mesos::createResourceEstimator);

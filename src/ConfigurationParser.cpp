@@ -23,6 +23,9 @@ const string WATCH_KEY = "isolator_watch";
 const string CLEANUP_KEY = "isolator_cleanup";
 const string USAGE_KEY = "isolator_usage";
 
+// ResourceEstimator commands.
+const string OVERSUBSCRIBABLE_KEY = "resource_estimator_oversubscribable";
+
 // Additional parameters.
 const string DEBUG_KEY = "debug";  // enable debug mode.
 
@@ -95,6 +98,9 @@ Configuration ConfigurationParser::parse(
   configuration.watchCommand = extractRecurrentCommand(p, WATCH_KEY);
   configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
   configuration.usageCommand = extractCommand(p, USAGE_KEY);
+
+  configuration.oversubscribableCommand =
+      extractCommand(p, OVERSUBSCRIBABLE_KEY);
 
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
 

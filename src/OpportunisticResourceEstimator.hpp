@@ -20,23 +20,22 @@
 namespace criteo {
 namespace mesos {
 
-class OpportunisticResourceEstimatorProcess;
+class CommandResourceEstimatorProcess;
 
-class OpportunisticResourceEstimator
-    : public ::mesos::slave::ResourceEstimator {
+class CommandResourceEstimator : public ::mesos::slave::ResourceEstimator {
  public:
-  explicit OpportunisticResourceEstimator(
-      const Option<Command>& oversubscribable, bool isDebugMode);
+  explicit CommandResourceEstimator(const Option<Command>& oversubscribable,
+                                    bool isDebugMode);
 
   virtual Try<Nothing> initialize(
       const lambda::function<process::Future<::mesos::ResourceUsage>()>& usage);
-  virtual ~OpportunisticResourceEstimator();
+  virtual ~CommandResourceEstimator();
 
   virtual process::Future<::mesos::Resources> oversubscribable();
 
  private:
   const Option<Command> m_oversubscribable;
-  OpportunisticResourceEstimatorProcess* process;
+  CommandResourceEstimatorProcess* process;
   bool m_isDebugMode;
 };
 }  // namespace mesos

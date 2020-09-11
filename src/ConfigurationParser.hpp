@@ -24,6 +24,7 @@ struct Configuration {
   Option<Command> slaveExecutorEnvironmentDecoratorCommand;
   Option<Command> slaveRemoveExecutorHookCommand;
 
+  Option<Command> oversubscribableCommand;
   // this flag allows the user to enable debug mode.
   bool isDebugSet;
 };

@@ -1,4 +1,4 @@
-#include "OpportunisticResourceEstimator.hpp"
+#include "CommandResourceEstimator.hpp"
 #include "CommandRunner.hpp"
 #include "Helpers.hpp"
 
@@ -25,10 +25,10 @@ using process::Future;
 using process::Failure;
 using process::terminate;
 
-class OpportunisticResourceEstimatorProcess
-    : public process::Process<OpportunisticResourceEstimatorProcess> {
+class CommandResourceEstimatorProcess
+    : public process::Process<CommandResourceEstimatorProcess> {
  public:
-  OpportunisticResourceEstimatorProcess(
+  CommandResourceEstimatorProcess(
       const lambda::function<Future<ResourceUsage>()>& _usage,
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
@@ -44,14 +44,14 @@ class OpportunisticResourceEstimatorProcess
   bool m_isDebugMode;
 };
 
-OpportunisticResourceEstimatorProcess::OpportunisticResourceEstimatorProcess(
+CommandResourceEstimatorProcess::CommandResourceEstimatorProcess(
     const lambda::function<process::Future<ResourceUsage>()>& _usage,
     const Option<Command>& oversubscribableCommand, bool isDebugMode)
     : usage(_usage),
       m_oversubscribableCommand(oversubscribableCommand),
       m_isDebugMode(isDebugMode) {}
 
-Future<Resources> OpportunisticResourceEstimatorProcess::_oversubscribable(
+Future<Resources> CommandResourceEstimatorProcess::_oversubscribable(
     const ResourceUsage& usage) {
   // Mocking a resources to have valid return
   Try<Resources> _resources = ::mesos::Resources::parse(
@@ -85,37 +85,36 @@ Future<Resources> OpportunisticResourceEstimatorProcess::_oversubscribable(
 
   return revocable;
 }
-Future<Resources> OpportunisticResourceEstimatorProcess::oversubscribable() {
+Future<Resources> CommandResourceEstimatorProcess::oversubscribable() {
   return usage().then(defer(self(), &Self::_oversubscribable, lambda::_1));
 }
 
-OpportunisticResourceEstimator::OpportunisticResourceEstimator(
+CommandResourceEstimator::CommandResourceEstimator(
     const Option<Command>& _oversubscribable, bool isDebugMode)
     : m_oversubscribable(_oversubscribable), m_isDebugMode(isDebugMode) {}
 
-OpportunisticResourceEstimator::~OpportunisticResourceEstimator() {
+CommandResourceEstimator::~CommandResourceEstimator() {
   if (process != nullptr) {
     terminate(process);
     wait(process);
   }
 }
 
-Try<Nothing> OpportunisticResourceEstimator::initialize(
+Try<Nothing> CommandResourceEstimator::initialize(
     const lambda::function<Future<::mesos::ResourceUsage>()>& _usage) {
-  process = new OpportunisticResourceEstimatorProcess(
-      _usage, m_oversubscribable, m_isDebugMode);
+  process = new CommandResourceEstimatorProcess(_usage, m_oversubscribable,
+                                                m_isDebugMode);
   spawn(process);
 
   return Nothing();
 }
 
-Future<Resources> OpportunisticResourceEstimator::oversubscribable() {
+Future<Resources> CommandResourceEstimator::oversubscribable() {
   if (process == nullptr) {
     return Failure("Opportunistic resource estimator is not initialized");
   }
 
-  return dispatch(process,
-                  &OpportunisticResourceEstimatorProcess::oversubscribable);
+  return dispatch(process, &CommandResourceEstimatorProcess::oversubscribable);
 }
 
 }  // namespace mesos

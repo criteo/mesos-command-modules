@@ -60,7 +60,7 @@ set(MODULES_SOURCES
   ${CMAKE_SOURCE_DIR}/src/RunningContext.cpp
   ${CMAKE_SOURCE_DIR}/src/ConfigurationParser.cpp
   ${CMAKE_SOURCE_DIR}/src/ModulesFactory.cpp
-  ${CMAKE_SOURCE_DIR}/src/OpportunisticResourceEstimator.cpp
+  ${CMAKE_SOURCE_DIR}/src/CommandResourceEstimator.cpp
 )
 
 set(MODULES_HEADERS
@@ -73,7 +73,7 @@ set(MODULES_HEADERS
   ${CMAKE_SOURCE_DIR}/src/Helpers.hpp
   ${CMAKE_SOURCE_DIR}/src/Logger.hpp
   ${CMAKE_SOURCE_DIR}/src/ModulesFactory.hpp
-  ${CMAKE_SOURCE_DIR}/src/OpportunisticResourceEstimator.hpp
+  ${CMAKE_SOURCE_DIR}/src/CommandResourceEstimator.hpp
 )
 
 set(ALL_SOURCES
