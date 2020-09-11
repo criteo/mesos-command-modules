@@ -10,9 +10,6 @@
 namespace criteo {
 namespace mesos {
 
-using namespace process;
-using namespace mesos;
-
 using std::string;
 
 using ::mesos::modules::Module;
@@ -29,15 +26,14 @@ class CommandResourceEstimatorProcess
     : public process::Process<CommandResourceEstimatorProcess> {
  public:
   CommandResourceEstimatorProcess(
-      const lambda::function<Future<ResourceUsage>()>& _usage,
+      const lambda::function<Future<ResourceUsage>()>& usage,
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
   virtual process::Future<Resources> oversubscribable();
-  virtual process::Future<Resources> _oversubscribable(
-      const ResourceUsage& usage);
+  virtual Resources m_oversubscribable(const ResourceUsage& usage);
 
  protected:
-  const lambda::function<Future<ResourceUsage>()> usage;
+  const lambda::function<Future<ResourceUsage>()> m_usage;
 
  private:
   Option<Command> m_oversubscribableCommand;
@@ -45,14 +41,14 @@ class CommandResourceEstimatorProcess
 };
 
 CommandResourceEstimatorProcess::CommandResourceEstimatorProcess(
-    const lambda::function<process::Future<ResourceUsage>()>& _usage,
+    const lambda::function<process::Future<ResourceUsage>()>& usage,
     const Option<Command>& oversubscribableCommand, bool isDebugMode)
-    : usage(_usage),
+    : m_usage(usage),
       m_oversubscribableCommand(oversubscribableCommand),
       m_isDebugMode(isDebugMode) {}
 
-Future<Resources> CommandResourceEstimatorProcess::_oversubscribable(
-    const ResourceUsage& usage) {
+Resources CommandResourceEstimatorProcess::m_oversubscribable(
+    const ResourceUsage& m_usage) {
   // Mocking a resources to have valid return
   Try<Resources> _resources = ::mesos::Resources::parse(
       "[{\"name\" : \"cpus\", \"type\":\"SCALAR\", \"scalar\" : {\"value\" : "
@@ -67,10 +63,13 @@ Future<Resources> CommandResourceEstimatorProcess::_oversubscribable(
   CommandRunner cmdrunner = CommandRunner(m_isDebugMode, metadata);
 
   string input;
-  google::protobuf::TextFormat::PrintToString(usage, &input);
+  google::protobuf::TextFormat::PrintToString(m_usage, &input);
 
   Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), input);
   if (output.isError()) {
+    LOG(INFO) << output.error();
+    // return Failure("output from CommandRunner gave error: " +
+    // output.error());
     return resources;
   }
 
@@ -86,7 +85,7 @@ Future<Resources> CommandResourceEstimatorProcess::_oversubscribable(
   return revocable;
 }
 Future<Resources> CommandResourceEstimatorProcess::oversubscribable() {
-  return usage().then(defer(self(), &Self::_oversubscribable, lambda::_1));
+  return m_usage().then(defer(self(), &Self::m_oversubscribable, lambda::_1));
 }
 
 CommandResourceEstimator::CommandResourceEstimator(
@@ -101,8 +100,8 @@ CommandResourceEstimator::~CommandResourceEstimator() {
 }
 
 Try<Nothing> CommandResourceEstimator::initialize(
-    const lambda::function<Future<::mesos::ResourceUsage>()>& _usage) {
-  process = new CommandResourceEstimatorProcess(_usage, m_oversubscribable,
+    const lambda::function<Future<::mesos::ResourceUsage>()>& usage) {
+  process = new CommandResourceEstimatorProcess(usage, m_oversubscribable,
                                                 m_isDebugMode);
   spawn(process);
 
