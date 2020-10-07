@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
+#include "CommandResourceEstimator.hpp"
 
 using namespace criteo::mesos;
 
@@ -95,4 +96,40 @@ TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
 
   ASSERT_EQ(isolator->prepareCommand().get(), Command("command_prepare", 30));
   ASSERT_TRUE(isolator->cleanupCommand().isNone());
+}
+
+// ***************************************
+// ********* ResourceEstimator ***********
+// ***************************************
+
+
+
+TEST(ModulesFactoryTest, should_create_resourceEstimator_with_correct_parameters) {
+  ::mesos::Parameters parameters;
+  auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test"); 
+  
+  var = parameters.add_parameter();
+  var->set_key("resource_estimator_oversubscribable_command");
+  var->set_value("command_oversubscribable");
+ 
+  std::unique_ptr<CommandResourceEstimator> resourceEstimator(
+      dynamic_cast<CommandResourceEstimator*>(createResourceEstimator(parameters)));
+  resourceEstimator->oversubscribableCommand().get();
+  LOG(INFO) << "ok";
+  ASSERT_EQ(resourceEstimator->oversubscribableCommand().get(), Command("command_oversubscribable", 30));
+  LOG(INFO) << "segfault" ;
+}
+
+TEST(ModulesFactoryTest, should_create_resourceEstimator_with_empty_parameters) {
+  ::mesos::Parameters parameters;
+  auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  std::unique_ptr<CommandResourceEstimator> resourceEstimator(
+      dynamic_cast<CommandResourceEstimator*>(createResourceEstimator(parameters)));
+  LOG(INFO)<<"nothing happening here";
+  ASSERT_TRUE(resourceEstimator->oversubscribableCommand().isNone());
 }

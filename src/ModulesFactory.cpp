@@ -29,9 +29,10 @@ using std::string;
 ::mesos::slave::ResourceEstimator* createResourceEstimator(
     const ::mesos::Parameters& parameters) {
   Configuration cfg = ConfigurationParser::parse(parameters);
-  return new CommandResourceEstimator(cfg.oversubscribableCommand,
+  return new CommandResourceEstimator(cfg.name, cfg.oversubscribableCommand,
                                       cfg.isDebugSet);
 }
+
 }  // namespace mesos
 }  // namespace criteo
 

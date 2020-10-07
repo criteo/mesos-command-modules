@@ -2,7 +2,7 @@
 #include "CommandRunner.hpp"
 #include "Helpers.hpp"
 
-#include <google/protobuf/text_format.h>
+#include <google/protobuf/util/json_util.h>
 
 #include <process/defer.hpp>
 #include <process/dispatch.hpp>
@@ -31,12 +31,15 @@ class CommandResourceEstimatorProcess
 
   virtual process::Future<Resources> oversubscribable();
   virtual Resources m_oversubscribable(const ResourceUsage& usage);
+  inline const Option<Command>& oversubscribableCommand() const {
+    return m_oversubscribableCommand;
+  }
 
  protected:
   const lambda::function<Future<ResourceUsage>()> m_usage;
 
  private:
-  Option<Command> m_oversubscribableCommand;
+  const Option<Command> m_oversubscribableCommand;
   bool m_isDebugMode;
 };
 
@@ -63,7 +66,7 @@ Resources CommandResourceEstimatorProcess::m_oversubscribable(
   CommandRunner cmdrunner = CommandRunner(m_isDebugMode, metadata);
 
   string input;
-  google::protobuf::TextFormat::PrintToString(m_usage, &input);
+  google::protobuf::util::MessageToJsonString(m_usage, &input);
 
   Try<string> output = cmdrunner.run(m_oversubscribableCommand.get(), input);
   if (output.isError()) {
@@ -84,13 +87,17 @@ Resources CommandResourceEstimatorProcess::m_oversubscribable(
 
   return revocable;
 }
+
 Future<Resources> CommandResourceEstimatorProcess::oversubscribable() {
   return m_usage().then(defer(self(), &Self::m_oversubscribable, lambda::_1));
 }
 
 CommandResourceEstimator::CommandResourceEstimator(
-    const Option<Command>& _oversubscribable, bool isDebugMode)
-    : m_oversubscribable(_oversubscribable), m_isDebugMode(isDebugMode) {}
+    const std::string& name, const Option<Command>& _oversubscribable,
+    bool isDebugMode)
+    : m_oversubscribableCommand(_oversubscribable), m_isDebugMode(isDebugMode) {
+  LOG(INFO) << "new resourceEstimator";
+}
 
 CommandResourceEstimator::~CommandResourceEstimator() {
   if (process != nullptr) {
@@ -101,8 +108,8 @@ CommandResourceEstimator::~CommandResourceEstimator() {
 
 Try<Nothing> CommandResourceEstimator::initialize(
     const lambda::function<Future<::mesos::ResourceUsage>()>& usage) {
-  process = new CommandResourceEstimatorProcess(usage, m_oversubscribable,
-                                                m_isDebugMode);
+  process = new CommandResourceEstimatorProcess(
+      usage, m_oversubscribableCommand, m_isDebugMode);
   spawn(process);
 
   return Nothing();
@@ -112,7 +119,6 @@ Future<Resources> CommandResourceEstimator::oversubscribable() {
   if (process == nullptr) {
     return Failure("Opportunistic resource estimator is not initialized");
   }
-
   return dispatch(process, &CommandResourceEstimatorProcess::oversubscribable);
 }
 

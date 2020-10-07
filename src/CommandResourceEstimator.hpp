@@ -1,5 +1,5 @@
-#ifndef __OPPORTUNISTIC_RESOURCE_ESTIMATOR_HPP__
-#define __OPPORTUNISTIC_RESOURCE_ESTIMATOR_HPP__
+#ifndef __COMMAND_RESOURCE_ESTIMATOR_HPP__
+#define __COMMAND_RESOURCE_ESTIMATOR_HPP__
 
 #include <string>
 
@@ -24,7 +24,8 @@ class CommandResourceEstimatorProcess;
 
 class CommandResourceEstimator : public ::mesos::slave::ResourceEstimator {
  public:
-  explicit CommandResourceEstimator(const Option<Command>& oversubscribable,
+  explicit CommandResourceEstimator(const std::string& name,
+                                    const Option<Command>& oversubscribable,
                                     bool isDebugMode);
 
   virtual Try<Nothing> initialize(
@@ -32,9 +33,12 @@ class CommandResourceEstimator : public ::mesos::slave::ResourceEstimator {
   virtual ~CommandResourceEstimator();
 
   virtual process::Future<::mesos::Resources> oversubscribable();
+  inline const Option<Command>& oversubscribableCommand() const {
+    return m_oversubscribableCommand;
+  }
 
  private:
-  const Option<Command> m_oversubscribable;
+  const Option<Command> m_oversubscribableCommand;
   CommandResourceEstimatorProcess* process;
   bool m_isDebugMode;
 };
