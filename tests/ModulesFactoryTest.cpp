@@ -102,6 +102,61 @@ TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
 // ********* ResourceEstimator ***********
 // ***************************************
 
+static const process::Future<::mesos::ResourceUsage> MockUsage(){
+     
+  process::Owned<mesos::ResourceUsage> usage(new ::mesos::ResourceUsage());
+
+  mesos::Resources mockResources = mesos::Resources::parse("cpus:1; mem:128").get();
+  //mock Executorinfo
+  mesos::ExecutorInfo executorInfo;
+  executorInfo.set_name("test_exec");
+  mockResources.allocate("*");
+  executorInfo.mutable_resources()->CopyFrom(mockResources);
+  executorInfo.mutable_executor_id()->set_value("mock.executor.Id");
+  {
+    auto env = executorInfo.mutable_command()->mutable_environment();
+    auto var = env->add_variables();
+    var->set_name("foo");
+    var->set_value("bar");
+    var = env->add_variables();
+    var->set_name("deleted");
+    var->set_value("whatever");
+  }
+
+  //mock TaskInfo
+  mesos::TaskInfo taskInfo;
+  taskInfo.set_name("test_task");
+  taskInfo.mutable_task_id()->set_value("1");
+  taskInfo.mutable_slave_id()->set_value("2");
+  {
+    auto l = taskInfo.mutable_labels()->add_labels();
+    l->set_key("foo");
+    l->set_value("bar");
+  }
+  
+  mesos::Resources allocatedResources = mesos::Resources::parse(
+        "cpus:" + stringify("1") +
+        ";mem:" + stringify("32")).get();
+  allocatedResources.allocate("*");
+
+  //mockExecutor
+  mesos::ResourceUsage::Executor* mockExecutor = usage->add_executors();
+  mockExecutor->mutable_executor_info()->CopyFrom(executorInfo);
+  mockExecutor->mutable_allocated()->CopyFrom(allocatedResources);
+  mockExecutor->mutable_container_id()->set_value("3");
+
+  //mocktask
+  /*mesos::ResourceUsage::Executor::Task mockTask = mockExecutor->add_tasks();
+  mockTask.set_name("test");
+  mockTask.mutable_id()->set_value("1");
+  mockTask.mutable_resources()->CopyFrom(mockResources);*/
+
+  //mock total 
+  mesos::Resources totalResources = mesos::Resources::parse(
+	"cpus: 4 ;mem : 1024").get();
+  usage->mutable_total()->CopyFrom(totalResources);
+  return process::Future<mesos::ResourceUsage>(*usage);
+};
 
 
 TEST(ModulesFactoryTest, should_create_resourceEstimator_with_correct_parameters) {
@@ -113,13 +168,12 @@ TEST(ModulesFactoryTest, should_create_resourceEstimator_with_correct_parameters
   var = parameters.add_parameter();
   var->set_key("resource_estimator_oversubscribable_command");
   var->set_value("command_oversubscribable");
- 
+
+
   std::unique_ptr<CommandResourceEstimator> resourceEstimator(
       dynamic_cast<CommandResourceEstimator*>(createResourceEstimator(parameters)));
-  resourceEstimator->oversubscribableCommand().get();
-  LOG(INFO) << "ok";
+  resourceEstimator->initialize(MockUsage);
   ASSERT_EQ(resourceEstimator->oversubscribableCommand().get(), Command("command_oversubscribable", 30));
-  LOG(INFO) << "segfault" ;
 }
 
 TEST(ModulesFactoryTest, should_create_resourceEstimator_with_empty_parameters) {
@@ -130,6 +184,6 @@ TEST(ModulesFactoryTest, should_create_resourceEstimator_with_empty_parameters) 
 
   std::unique_ptr<CommandResourceEstimator> resourceEstimator(
       dynamic_cast<CommandResourceEstimator*>(createResourceEstimator(parameters)));
-  LOG(INFO)<<"nothing happening here";
+  resourceEstimator->initialize(MockUsage);
   ASSERT_TRUE(resourceEstimator->oversubscribableCommand().isNone());
 }

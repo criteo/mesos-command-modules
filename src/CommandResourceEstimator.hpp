@@ -42,6 +42,7 @@ class CommandResourceEstimator : public ::mesos::slave::ResourceEstimator {
   CommandResourceEstimatorProcess* process;
   bool m_isDebugMode;
 };
+
 }  // namespace mesos
 }  // namespace criteo
 #endif

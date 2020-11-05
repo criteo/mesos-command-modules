@@ -29,7 +29,7 @@ class CommandResourceEstimatorProcess
       const lambda::function<Future<ResourceUsage>()>& usage,
       const Option<Command>& oversubscribableCommand, bool isDebugMode);
 
-  virtual process::Future<Resources> oversubscribable();
+  virtual Future<Resources> oversubscribable();
   virtual Resources m_oversubscribable(const ResourceUsage& usage);
   inline const Option<Command>& oversubscribableCommand() const {
     return m_oversubscribableCommand;
@@ -117,7 +117,7 @@ Try<Nothing> CommandResourceEstimator::initialize(
 
 Future<Resources> CommandResourceEstimator::oversubscribable() {
   if (process == nullptr) {
-    return Failure("Opportunistic resource estimator is not initialized");
+    return Failure("resource estimator is not initialized");
   }
   return dispatch(process, &CommandResourceEstimatorProcess::oversubscribable);
 }
