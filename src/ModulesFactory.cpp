@@ -2,6 +2,7 @@
 
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
+#include "CommandQoSController.hpp"
 #include "CommandResourceEstimator.hpp"
 #include "ConfigurationParser.hpp"
 
@@ -31,6 +32,13 @@ using std::string;
   Configuration cfg = ConfigurationParser::parse(parameters);
   return new CommandResourceEstimator(cfg.name, cfg.oversubscribableCommand,
                                       cfg.isDebugSet);
+}
+
+::mesos::slave::QoSController* createQoSController(
+    const ::mesos::Parameters& parameters) {
+  Configuration cfg = ConfigurationParser::parse(parameters);
+  return new CommandQoSController(cfg.name, cfg.correctionsCommand,
+                                  cfg.isDebugSet);
 }
 
 }  // namespace mesos
@@ -91,3 +99,11 @@ mesos::modules::Module<::mesos::slave::ResourceEstimator>
         MESOS_MODULE_API_VERSION, MESOS_VERSION, "Criteo Mesos",
         "mesos@criteo.com", "Command resource estimator module", nullptr,
         criteo::mesos::createResourceEstimator);
+
+mesos::modules::Module<::mesos::slave::QoSController>
+    com_criteo_mesos_CommandQoSController(MESOS_MODULE_API_VERSION,
+                                          MESOS_VERSION, "Criteo Mesos",
+                                          "mesos@criteo.com",
+                                          "Command QoSController module",
+                                          nullptr,
+                                          criteo::mesos::createQoSController);

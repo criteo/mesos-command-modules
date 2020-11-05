@@ -26,6 +26,9 @@ const string USAGE_KEY = "isolator_usage";
 // ResourceEstimator commands.
 const string OVERSUBSCRIBABLE_KEY = "resource_estimator_oversubscribable";
 
+// QoSController commands.
+const string CORRECTIONS_KEY = "qoscontroller_corrections";
+
 // Additional parameters.
 const string DEBUG_KEY = "debug";  // enable debug mode.
 
@@ -101,6 +104,8 @@ Configuration ConfigurationParser::parse(
 
   configuration.oversubscribableCommand =
       extractCommand(p, OVERSUBSCRIBABLE_KEY);
+
+  configuration.correctionsCommand = extractCommand(p, CORRECTIONS_KEY);
 
   configuration.isDebugSet = getOrEmpty(p, DEBUG_KEY) == "true";
 

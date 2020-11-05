@@ -25,6 +25,8 @@ struct Configuration {
   Option<Command> slaveRemoveExecutorHookCommand;
 
   Option<Command> oversubscribableCommand;
+
+  Option<Command> correctionsCommand;
   // this flag allows the user to enable debug mode.
   bool isDebugSet;
 };
