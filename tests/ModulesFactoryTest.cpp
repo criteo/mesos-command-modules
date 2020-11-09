@@ -3,6 +3,7 @@
 #include "CommandHook.hpp"
 #include "CommandIsolator.hpp"
 #include "CommandResourceEstimator.hpp"
+#include "CommandQoSController.hpp"
 
 using namespace criteo::mesos;
 
@@ -102,6 +103,7 @@ TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
 // ********* ResourceEstimator ***********
 // ***************************************
 
+//mock resourceUsage
 static const process::Future<::mesos::ResourceUsage> MockUsage(){
      
   process::Owned<mesos::ResourceUsage> usage(new ::mesos::ResourceUsage());
@@ -158,17 +160,14 @@ static const process::Future<::mesos::ResourceUsage> MockUsage(){
   return process::Future<mesos::ResourceUsage>(*usage);
 };
 
-
 TEST(ModulesFactoryTest, should_create_resourceEstimator_with_correct_parameters) {
   ::mesos::Parameters parameters;
   auto var = parameters.add_parameter();
   var->set_key("module_name");
-  var->set_value("test"); 
-  
+  var->set_value("test");  
   var = parameters.add_parameter();
   var->set_key("resource_estimator_oversubscribable_command");
   var->set_value("command_oversubscribable");
-
 
   std::unique_ptr<CommandResourceEstimator> resourceEstimator(
       dynamic_cast<CommandResourceEstimator*>(createResourceEstimator(parameters)));
@@ -187,3 +186,36 @@ TEST(ModulesFactoryTest, should_create_resourceEstimator_with_empty_parameters) 
   resourceEstimator->initialize(MockUsage);
   ASSERT_TRUE(resourceEstimator->oversubscribableCommand().isNone());
 }
+
+
+// ***************************************
+// *********** QoSController *************
+// ***************************************
+
+TEST(ModulesFactoryTest, should_create_QoSController_with_correct_parameters) {
+  ::mesos::Parameters parameters;
+  auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");  
+  var = parameters.add_parameter();
+  var->set_key("qoscontroller_corrections_command");
+  var->set_value("command_corrections");
+
+  std::unique_ptr<CommandQoSController> QoSController(
+      dynamic_cast<CommandQoSController*>(createQoSController(parameters)));
+  QoSController->initialize(MockUsage);
+  ASSERT_EQ(QoSController->correctionsCommand().get(), Command("command_corrections", 30));
+}
+
+TEST(ModulesFactoryTest, should_create_QoSController_with_empty_parameters) {
+  ::mesos::Parameters parameters;
+  auto var = parameters.add_parameter();
+  var->set_key("module_name");
+  var->set_value("test");
+
+  std::unique_ptr<CommandQoSController> QoSController(
+      dynamic_cast<CommandQoSController*>(createQoSController(parameters)));
+  QoSController->initialize(MockUsage);
+  ASSERT_TRUE(QoSController->correctionsCommand().isNone());
+}
+

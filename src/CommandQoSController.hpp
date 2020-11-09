@@ -30,7 +30,7 @@ class CommandQoSController : public ::mesos::slave::QoSController {
   virtual process::Future<std::list<::mesos::slave::QoSCorrection>>
   corrections();
 
-  inline const Option<Command>& oversubscribableCommand() const {
+  inline const Option<Command>& correctionsCommand() const {
     return m_correctionsCommand;
   }
 

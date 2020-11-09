@@ -1,4 +1,4 @@
-#include "CommandResourceEstimator.hpp"
+#include "CommandQoSController.hpp"
 #include "gtest_helpers.hpp"
 
 #include <gtest/gtest.h>
@@ -12,11 +12,12 @@ extern std::string g_resourcesPath;
 
 using namespace criteo::mesos;
 using process::Owned;
+using std::list;
 
 const int32_t CPU_ALLOCATED = 1;
 const int32_t MEM_ALLOCATED = 128;
 
-class CommandResourceEstimatorTest : public ::testing::Test {
+class CommandQoSControllerTest : public ::testing::Test {
   public:
 	//mock resourceUsage
 	static const process::Future<::mesos::ResourceUsage> MockUsage(){
@@ -72,70 +73,72 @@ class CommandResourceEstimatorTest : public ::testing::Test {
     virtual void SetUp(); 
      
   	const lambda::function<process::Future<mesos::ResourceUsage>()> resourceUsage;  
-  	std::unique_ptr<CommandResourceEstimator> resourceEstimator;
+  	std::unique_ptr<CommandQoSController> qosController;
 };
 
-   void CommandResourceEstimatorTest::SetUp(){
+   void CommandQoSControllerTest::SetUp(){
 	    //resourceUsage = &MockUsage;
-	resourceEstimator.reset(new CommandResourceEstimator("test",
- 	    	Command(g_resourcesPath + "oversubscribable.sh"), false));
-      resourceEstimator->initialize(MockUsage);
+	qosController.reset(new CommandQoSController("test",
+ 	    	Command(g_resourcesPath + "corrections.sh"), false));
+      qosController->initialize(MockUsage);
    };
 
- class CommandResourceEstimatorSimpleTest : public CommandResourceEstimatorTest {
+ class CommandQoSControllerSimpleTest : public CommandQoSControllerTest {
     
   public:
     void SetUp() {
-	  CommandResourceEstimatorTest::SetUp();
-	}
+	  CommandQoSControllerTest::SetUp();
+    }
 };
 
-  TEST_F(CommandResourceEstimatorSimpleTest, should_run_oversubscribable_command) {
+  TEST_F(CommandQoSControllerSimpleTest, should_run_corrections_command) {
     
 	SetUp();
 
-    mesos::Resources resources = mesos::Resources::parse("[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : \"8\"}, \"role\" : \"*\"}]").get();
-    mesos::Resources revocable{};
-    foreach (mesos::Resource resource, resources){
-      resource.mutable_revocable();
-      revocable+=resource;
-    }
-    mesos::Resources output;
-	if (resourceEstimator)
-    	output = resourceEstimator->oversubscribable().get();
-    else
-        output = mesos::Resources();
-    EXPECT_EQ(output, revocable); 
+	::mesos::slave::QoSCorrection correction;
+	::mesos::slave::QoSCorrection::Kill *kill = correction.mutable_kill();
+	kill->mutable_framework_id()->set_value("1");
+	kill->mutable_executor_id()->set_value("revocable");
+	kill->mutable_container_id()->set_value("0");
+	//string strCorrection = "{\"type\":\"KILL\",\"kill\":{\"executorId\":{\"value\":\"revocable\"},\"frameworkId\":{\"value\":\"1\"},\"containerId\":{\"value\":\"2\"}}}";
+	//google::protobuf::util::JsonStringToMessage(strCorrection, &correction);
+    list<::mesos::slave::QoSCorrection> corrections({correction});
+	list<::mesos::slave::QoSCorrection> output;
+
+	output = qosController->corrections().get();
+	auto it1 = output.begin();
+	auto it2 = corrections.begin();
+	while(it1 != output.end() && it2 != corrections.end()) { 
+      EXPECT_EQ(it1, it2);
+	  it1++;
+	  it2++;
+	} 
 }
 
 
-  class CommandResourceEstimatorEmptyTest : public CommandResourceEstimatorTest {
+  class CommandQoSControllerEmptyTest : public CommandQoSControllerTest {
     
   public:
     void SetUp() {
-	  CommandResourceEstimatorTest::SetUp();
-	  resourceEstimator.reset(new CommandResourceEstimator("test",
-	    Command(g_resourcesPath + "oversubscribable_empty.sh"), false));
-	  resourceEstimator->initialize(MockUsage);
+	  CommandQoSControllerTest::SetUp();
+	  qosController.reset(new CommandQoSController("test",
+	    Command(g_resourcesPath + "corrections_empty.sh"), false));
+	  qosController->initialize(MockUsage);
     }
 };
 
 
-  TEST_F(CommandResourceEstimatorEmptyTest, should_not_run_oversubscribable_command) {
+  TEST_F(CommandQoSControllerEmptyTest, should_not_run_corrections_command) {
     
 	SetUp();
-
-    mesos::Resources resources = mesos::Resources::parse("[{\"name\" : \"cpus\", \"type\" : \"SCALAR\", \"scalar\" : {\"value\" : \"0\"}, \"role\" : \"*\"}]").get();
-    mesos::Resources revocable{};
-    foreach (mesos::Resource resource, resources){
-      resource.mutable_revocable();
-      revocable+=resource;
-    }
-    mesos::Resources output;
-	if (resourceEstimator)
-    	output = resourceEstimator->oversubscribable().get();
-    else
-        output = mesos::Resources();
-    EXPECT_EQ(output, resources); 
+	list<::mesos::slave::QoSCorrection> output = qosController->corrections().get();
+	list<::mesos::slave::QoSCorrection> corrections = list<::mesos::slave::QoSCorrection>();	
+    
+	auto it1 = output.begin();
+	auto it2 = corrections.begin();
+	while(it1 != output.end() && it2 != corrections.end()) { 
+      EXPECT_EQ(it1, it2);
+	  it1++;
+	  it2++;
+	}  
 }
-
