@@ -95,9 +95,8 @@ Future<Resources> CommandResourceEstimatorProcess::oversubscribable() {
 CommandResourceEstimator::CommandResourceEstimator(
     const std::string& name, const Option<Command>& _oversubscribable,
     bool isDebugMode)
-    : m_oversubscribableCommand(_oversubscribable), m_isDebugMode(isDebugMode) {
-  LOG(INFO) << "new resourceEstimator";
-}
+    : m_oversubscribableCommand(_oversubscribable),
+      m_isDebugMode(isDebugMode) {}
 
 CommandResourceEstimator::~CommandResourceEstimator() {
   if (process != nullptr) {

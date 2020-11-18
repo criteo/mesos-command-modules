@@ -52,7 +52,7 @@ CommandQoSControllerProcess::CommandQoSControllerProcess(
 
 list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
     const ResourceUsage& m_usage) {
-  LOG(INFO) << "Start Corrections timer_start_module QoSController";
+  LOG(DEBUG) << "Start Corrections timer_start_module QoSController";
   list<QoSCorrection> listCorrection;
   if (m_correctionsCommand.isNone()) {
     return list<QoSCorrection>();
@@ -64,9 +64,9 @@ list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
 
   string input;
   google::protobuf::util::MessageToJsonString(m_usage, &input);
-  LOG(INFO) << "Start QoSscript timer_start_script QoSController";
+  LOG(DEBUG) << "Start QoSscript timer_start_script QoSController";
   Try<string> output = cmdRunner.run(m_correctionsCommand.get(), input);
-  LOG(INFO) << "End QoSscript timer_end_script QoSController";
+  LOG(DEBUG) << "End QoSscript timer_end_script QoSController";
 
   if (output.isError()) {
     LOG(INFO) << output.error();
@@ -99,11 +99,11 @@ list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
 Future<list<QoSCorrection>> CommandQoSControllerProcess::corrections() {
   return m_usage().then(defer(self(), &Self::m_corrections, lambda::_1));
 };
+
 CommandQoSController::CommandQoSController(const std::string& name,
                                            const Option<Command>& _corrections,
                                            bool isDebugMode)
     : m_correctionsCommand(_corrections), m_isDebugMode(isDebugMode) {
-  LOG(INFO) << "new QoSController";
 };
 
 CommandQoSController::~CommandQoSController() {
