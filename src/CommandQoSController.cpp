@@ -52,7 +52,6 @@ CommandQoSControllerProcess::CommandQoSControllerProcess(
 
 list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
     const ResourceUsage& m_usage) {
-  LOG(DEBUG) << "Start Corrections timer_start_module QoSController";
   list<QoSCorrection> listCorrection;
   if (m_correctionsCommand.isNone()) {
     return list<QoSCorrection>();
@@ -64,9 +63,7 @@ list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
 
   string input;
   google::protobuf::util::MessageToJsonString(m_usage, &input);
-  LOG(DEBUG) << "Start QoSscript timer_start_script QoSController";
   Try<string> output = cmdRunner.run(m_correctionsCommand.get(), input);
-  LOG(DEBUG) << "End QoSscript timer_end_script QoSController";
 
   if (output.isError()) {
     LOG(INFO) << output.error();
@@ -92,7 +89,6 @@ list<::mesos::slave::QoSCorrection> CommandQoSControllerProcess::m_corrections(
     listCorrection.push_back(correction);
     stroutput.erase(0, pos + delimiter.length());
   }
-  LOG(INFO) << "End corrections timer_end_module QoSController";
   return listCorrection;
 };
 
