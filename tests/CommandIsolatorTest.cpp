@@ -175,7 +175,7 @@ TEST_F(UnexistingCommandIsolatorTest,
 }
 
 TEST_F(UnexistingCommandIsolatorTest,
-       should_try_to_run_isoalte_command_and_fail) {
+       should_try_to_run_isolate_command_and_fail) {
   auto future = isolator->isolate(containerId, pid);
   AWAIT_FAILED(future);
 }

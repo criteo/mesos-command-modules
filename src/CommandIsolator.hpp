@@ -36,7 +36,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * @param prepareCommand The command to execute when `prepare` event is
    *   triggered for a given container.
    * @param isolateCommand The command to execute when `isolate` event is
-   *   triggered for a givene container.
+   *   triggered for a given container.
    * @param cleanupCommand The command to execute when `cleanup` event is
    *   triggered for a given container.
    * @param watchCommand The command to execute when `watch` event is
