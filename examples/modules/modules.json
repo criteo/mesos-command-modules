@@ -32,6 +32,10 @@
               "value": "/tmp/mesos/modules/prepare.sh"
             },
             {
+              "key": "isolator_isolate",
+              "value": "/tmp/mesos/modules/isolate.sh"
+            },
+            {
               "key": "isolator_cleanup",
               "value": "/tmp/mesos/modules/cleanup.sh"
             },

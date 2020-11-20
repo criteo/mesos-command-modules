@@ -38,6 +38,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
  public:
   CommandIsolatorProcess(const string& name,
                          const Option<Command>& prepareCommand,
+                         const Option<Command>& isolateCommand,
                          const Option<RecurrentCommand>& watchCommand,
                          const Option<Command>& cleanupCommand,
                          const Option<Command>& usageCommand, bool isDebugMode);
@@ -52,6 +53,10 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   virtual process::Future<ContainerLimitation> watch(
       const ContainerID& containerId);
 
+  // Isolate the executor.
+  virtual process::Future<Nothing> isolate(const ContainerID& containerId,
+                                           pid_t pid);
+
   virtual process::Future<Nothing> cleanup(const ContainerID& containerId);
 
   virtual process::Future<::mesos::ResourceStatistics> usage(
@@ -60,7 +65,9 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   inline const Option<Command>& prepareCommand() const {
     return m_prepareCommand;
   }
-
+  inline const Option<Command>& isolateCommand() const {
+    return m_isolateCommand;
+  }
   inline const Option<Command>& cleanupCommand() const {
     return m_cleanupCommand;
   }
@@ -84,6 +91,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
 
   string m_name;
   Option<Command> m_prepareCommand;
+  Option<Command> m_isolateCommand;
   Option<RecurrentCommand> m_watchCommand;
   Option<Command> m_cleanupCommand;
   Option<Command> m_usageCommand;
@@ -93,11 +101,13 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
 
 CommandIsolatorProcess::CommandIsolatorProcess(
     const string& name, const Option<Command>& prepareCommand,
+    const Option<Command>& isolateCommand,
     const Option<RecurrentCommand>& watchCommand,
     const Option<Command>& cleanupCommand, const Option<Command>& usageCommand,
     bool isDebugMode)
     : m_name(name),
       m_prepareCommand(prepareCommand),
+      m_isolateCommand(isolateCommand),
       m_watchCommand(watchCommand),
       m_cleanupCommand(cleanupCommand),
       m_usageCommand(usageCommand),
@@ -184,6 +194,25 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolatorProcess::prepare(
                    containerLaunchInfo.error());
   }
   return containerLaunchInfo.get();
+}
+
+process::Future<Nothing> CommandIsolatorProcess::isolate(
+    const ContainerID& containerId, pid_t pid) {
+  if (m_isolateCommand.isNone()) {
+    return Nothing();
+  }
+  logging::Metadata metadata = {containerId.value(), "isolate"};
+
+  JSON::Object inputsJson;
+  inputsJson.values["container_id"] = JSON::protobuf(containerId);
+  inputsJson.values["pid"] = pid;
+
+  Try<string> output = CommandRunner(m_isDebugMode, metadata)
+                           .run(m_isolateCommand.get(), stringify(inputsJson));
+  if (output.isError()) {
+    return Failure(output.error());
+  }
+  return Nothing();
 }
 
 process::Future<Nothing> CommandIsolatorProcess::recover(
@@ -361,13 +390,14 @@ process::Future<Nothing> CommandIsolatorProcess::cleanup(
 
 CommandIsolator::CommandIsolator(const string& name,
                                  const Option<Command>& prepareCommand,
+                                 const Option<Command>& isolateCommand,
                                  const Option<RecurrentCommand>& watchCommand,
                                  const Option<Command>& cleanupCommand,
                                  const Option<Command>& usageCommand,
                                  bool isDebugMode)
-    : m_process(new CommandIsolatorProcess(name, prepareCommand, watchCommand,
-                                           cleanupCommand, usageCommand,
-                                           isDebugMode)) {
+    : m_process(new CommandIsolatorProcess(name, prepareCommand, isolateCommand,
+                                           watchCommand, cleanupCommand,
+                                           usageCommand, isDebugMode)) {
   spawn(m_process);
 }
 
@@ -383,6 +413,12 @@ process::Future<Option<ContainerLaunchInfo>> CommandIsolator::prepare(
     const ContainerID& containerId, const ContainerConfig& containerConfig) {
   return dispatch(m_process, &CommandIsolatorProcess::prepare, containerId,
                   containerConfig);
+}
+
+process::Future<Nothing> CommandIsolator::isolate(
+    const ContainerID& containerId, const pid_t pid) {
+  return dispatch(m_process, &CommandIsolatorProcess::isolate, containerId,
+                  pid);
 }
 
 process::Future<Nothing> CommandIsolator::recover(
@@ -413,6 +449,11 @@ bool CommandIsolator::hasContainerContext(const ContainerID& containerId) {
 const Option<Command>& CommandIsolator::prepareCommand() const {
   CHECK_NOTNULL(m_process);
   return m_process->prepareCommand();
+}
+
+const Option<Command>& CommandIsolator::isolateCommand() const {
+  CHECK_NOTNULL(m_process);
+  return m_process->isolateCommand();
 }
 
 const Option<Command>& CommandIsolator::cleanupCommand() const {

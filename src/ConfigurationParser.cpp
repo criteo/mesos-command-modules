@@ -2,7 +2,6 @@
 
 #include <map>
 #include <stout/foreach.hpp>
-
 namespace criteo {
 namespace mesos {
 
@@ -19,6 +18,7 @@ const string SLAVE_REMOVE_EXECUTOR_KEY = "hook_slave_remove_executor_hook";
 
 // Isolator commands.
 const string PREPARE_KEY = "isolator_prepare";
+const string ISOLATE_KEY = "isolator_isolate";
 const string WATCH_KEY = "isolator_watch";
 const string CLEANUP_KEY = "isolator_cleanup";
 const string USAGE_KEY = "isolator_usage";
@@ -92,6 +92,7 @@ Configuration ConfigurationParser::parse(
       extractCommand(p, SLAVE_RUN_TASK_LABEL_DECORATOR_KEY);
 
   configuration.prepareCommand = extractCommand(p, PREPARE_KEY);
+  configuration.isolateCommand = extractCommand(p, ISOLATE_KEY);
   configuration.watchCommand = extractRecurrentCommand(p, WATCH_KEY);
   configuration.cleanupCommand = extractCommand(p, CLEANUP_KEY);
   configuration.usageCommand = extractCommand(p, USAGE_KEY);
