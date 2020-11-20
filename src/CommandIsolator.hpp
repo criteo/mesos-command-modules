@@ -35,6 +35,8 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    *
    * @param prepareCommand The command to execute when `prepare` event is
    *   triggered for a given container.
+   * @param isolateCommand The command to execute when `isolate` event is
+   *   triggered for a given container.
    * @param cleanupCommand The command to execute when `cleanup` event is
    *   triggered for a given container.
    * @param watchCommand The command to execute when `watch` event is
@@ -46,6 +48,7 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    */
   explicit CommandIsolator(const std::string& name,
                            const Option<Command>& prepareCommand,
+                           const Option<Command>& isolateCommand,
                            const Option<RecurrentCommand>& watchCommand,
                            const Option<Command>& cleanupCommand,
                            const Option<Command>& usageCommand,
@@ -77,7 +80,17 @@ class CommandIsolator : public ::mesos::slave::Isolator {
       const ::mesos::slave::ContainerConfig& containerConfig);
 
   /**
-   * Recover containers from the run states and containers context saved on disk
+   * Isolates the container
+   *
+   * @param containerId The container ID of the container to be isolated.
+   * @param pid The PID of the containerizer.
+   */
+  virtual process::Future<Nothing> isolate(
+      const ::mesos::ContainerID& containerId, pid_t pid);
+
+  /**
+   * Recover containers from the run states and containers context saved on
+   * disk
    *
    * @param containerId The container ID of the container to be cleaned up.
    */
@@ -105,6 +118,11 @@ class CommandIsolator : public ::mesos::slave::Isolator {
    * Get prepare command.
    */
   const Option<Command>& prepareCommand() const;
+
+  /**
+   * Get cleanup command.
+   */
+  const Option<Command>& isolateCommand() const;
 
   /**
    * Get cleanup command.

@@ -16,6 +16,7 @@ namespace mesos {
 struct Configuration {
   std::string name;
   Option<Command> prepareCommand;
+  Option<Command> isolateCommand;
   Option<RecurrentCommand> watchCommand;
   Option<Command> cleanupCommand;
   Option<Command> usageCommand;

@@ -70,13 +70,20 @@ TEST(ModulesFactoryTest, should_create_isolator_with_correct_parameters) {
   var->set_value("command_prepare");
 
   var = parameters.add_parameter();
+  var->set_key("isolator_isolate_command");
+  var->set_value("command_isolate");
+
+  var = parameters.add_parameter();
   var->set_key("isolator_cleanup_command");
   var->set_value("command_cleanup");
+
+
 
   std::unique_ptr<CommandIsolator> isolator(
       dynamic_cast<CommandIsolator*>(createIsolator(parameters)));
 
   ASSERT_EQ(isolator->prepareCommand().get(), Command("command_prepare", 30));
+  ASSERT_EQ(isolator->isolateCommand().get(), Command("command_isolate", 30));
   ASSERT_EQ(isolator->cleanupCommand().get(), Command("command_cleanup", 30));
 }
 
@@ -95,4 +102,5 @@ TEST(ModulesFactoryTest, should_create_isolator_with_empty_parameters) {
 
   ASSERT_EQ(isolator->prepareCommand().get(), Command("command_prepare", 30));
   ASSERT_TRUE(isolator->cleanupCommand().isNone());
+  ASSERT_TRUE(isolator->isolateCommand().isNone());
 }

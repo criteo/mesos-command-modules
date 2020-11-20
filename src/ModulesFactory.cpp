@@ -20,9 +20,9 @@ using std::string;
 ::mesos::slave::Isolator* createIsolator(
     const ::mesos::Parameters& parameters) {
   Configuration cfg = ConfigurationParser::parse(parameters);
-  return new CommandIsolator(cfg.name, cfg.prepareCommand, cfg.watchCommand,
-                             cfg.cleanupCommand, cfg.usageCommand,
-                             cfg.isDebugSet);
+  return new CommandIsolator(cfg.name, cfg.prepareCommand, cfg.isolateCommand,
+                             cfg.watchCommand, cfg.cleanupCommand,
+                             cfg.usageCommand, cfg.isDebugSet);
 }
 }  // namespace mesos
 }  // namespace criteo

@@ -33,6 +33,13 @@ TEST(ConfigurationParserTest, should_create_configuration) {
   var->set_value("20");
 
   var = parameters.add_parameter();
+  var->set_key("isolator_isolate_command");
+  var->set_value("command_isolate");
+  var = parameters.add_parameter();
+  var->set_key("isolator_isolate_timeout");
+  var->set_value("50");
+
+  var = parameters.add_parameter();
   var->set_key("isolator_cleanup_command");
   var->set_value("command_cleanup");
 
@@ -54,6 +61,7 @@ TEST(ConfigurationParserTest, should_create_configuration) {
   EXPECT_EQ(cfg.slaveRemoveExecutorHookCommand, Command("command_slave_remove_executor_hook", 30));
 
   EXPECT_EQ(cfg.prepareCommand, Command("command_prepare", 20));
+  EXPECT_EQ(cfg.isolateCommand, Command("command_isolate", 50));
   EXPECT_EQ(cfg.cleanupCommand, Command("command_cleanup", 30));
   EXPECT_EQ(cfg.watchCommand, RecurrentCommand("command_watch", 30, 10));
 
@@ -81,6 +89,7 @@ TEST(ConfigurationParserTest, should_create_configuration_with_optional_params) 
   EXPECT_TRUE(cfg.slaveRemoveExecutorHookCommand.isNone());
 
   EXPECT_TRUE(cfg.prepareCommand.isNone());
+  EXPECT_TRUE(cfg.isolateCommand.isNone());
   EXPECT_TRUE(cfg.cleanupCommand.isNone());
 
   EXPECT_TRUE(cfg.isDebugSet);
