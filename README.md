@@ -7,7 +7,7 @@ delegating the events to external commands.
 
 Here is the list of supported modules:
 - Hook (all methods)
-- Isolator (prepare, cleanup, watch, usage methods)
+- Isolator (prepare, isolate, cleanup, watch, usage methods)
 
 ## Production readyness
 
