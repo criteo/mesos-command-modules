@@ -75,7 +75,6 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   inline bool hasContainerContext(const ContainerID& containerId) {
     return m_infos.contains(containerId);
   }
-  Try<Nothing> cleanContainerContext(const ContainerID& containerId);
 
  private:
   inline static ::mesos::ResourceStatistics emptyStats(
@@ -88,6 +87,7 @@ class CommandIsolatorProcess : public process::Process<CommandIsolatorProcess> {
   Try<Nothing> saveContainerContext(const ContainerID& containerId,
                                     const ContainerConfig& containerConfig);
   Try<ContainerConfig> restoreContainerContext(const ContainerID& containerId);
+  Try<Nothing> cleanContainerContext(const ContainerID& containerId);
 
   string m_name;
   Option<Command> m_prepareCommand;
@@ -454,13 +454,6 @@ process::Future<::mesos::ResourceStatistics> CommandIsolator::usage(
 
 bool CommandIsolator::hasContainerContext(const ContainerID& containerId) {
   return m_process->hasContainerContext(containerId);
-}
-
-bool CommandIsolator::cleanContainerContext(const ContainerID& containerId) {
-  Try<Nothing> cleanContainerContext =
-      m_process->cleanContainerContext(containerId);
-
-  return !cleanContainerContext.isError();
 }
 
 const Option<Command>& CommandIsolator::prepareCommand() const {

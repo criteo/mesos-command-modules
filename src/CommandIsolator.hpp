@@ -134,7 +134,6 @@ class CommandIsolator : public ::mesos::slave::Isolator {
       const ::mesos::ContainerID& containerId);
 
   bool hasContainerContext(const ::mesos::ContainerID& containerId);
-  bool cleanContainerContext(const ::mesos::ContainerID& containerId);
 
  private:
   CommandIsolatorProcess* m_process;

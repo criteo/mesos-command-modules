@@ -89,13 +89,6 @@ TEST_F(CommandIsolatorSimpleTest,
   AWAIT_READY(future);
 }
 
-TEST_F(CommandIsolatorSimpleTest,
-       should_run_isolate_command_without_context_and_terminate_successfully) {
-  isolator->cleanContainerContext(containerId);
-  auto future = isolator->isolate(containerId, pid);
-  AWAIT_READY(future);
-  ASSERT_FALSE(isolator->hasContainerContext(containerId));
-}
 
 TEST_F(CommandIsolatorSimpleTest,
        should_run_isolate_command_with_context_and_terminate_successfully) {
