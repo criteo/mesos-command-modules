@@ -207,6 +207,16 @@ process::Future<Nothing> CommandIsolatorProcess::isolate(
   inputsJson.values["container_id"] = JSON::protobuf(containerId);
   inputsJson.values["pid"] = pid;
 
+  if (m_infos.contains(containerId)) {
+    inputsJson.values["container_config"] =
+        JSON::protobuf(m_infos[containerId]);
+
+  } else {
+    LOG(WARNING)
+        << "Missing container info during isolation of container with pid"
+        << pid;
+  }
+
   Try<string> output = CommandRunner(m_isDebugMode, metadata)
                            .run(m_isolateCommand.get(), stringify(inputsJson));
   if (output.isError()) {
