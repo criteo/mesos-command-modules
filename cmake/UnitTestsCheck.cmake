@@ -1,6 +1,8 @@
 set(TEST_SOURCES
   ${CMAKE_SOURCE_DIR}/tests/CommandHookTest.cpp
-  ${CMAKE_SOURCE_DIR}/tests/CommandIsolatorTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/CommandIsolatorTest.cpp 
+  ${CMAKE_SOURCE_DIR}/tests/CommandResourceEstimatorTest.cpp
+  ${CMAKE_SOURCE_DIR}/tests/CommandQoSControllerTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/CommandRunnerTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/ConfigurationParserTest.cpp
   ${CMAKE_SOURCE_DIR}/tests/ModulesFactoryTest.cpp
